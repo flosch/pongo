@@ -13,7 +13,7 @@ A tiny example:
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(out) // Output: Hello Florian!
+	fmt.Println(*out) // Output: Hello Florian!
 
 See GoPkgDoc for a list of implemented filters/tags and how to use the simple API:
 
