@@ -17,6 +17,6 @@ A tiny example:
 
 See GoPkgDoc for a list of implemented filters/tags and how to use the simple API:
 
-[http://go.pkgdoc.org/github.com/flosch/GoTemplate](http://go.pkgdoc.org/github.com/flosch/GoTemplate)
+[http://go.pkgdoc.org/github.com/flosch/GoTemplate/src](http://go.pkgdoc.org/github.com/flosch/GoTemplate/src)
 
 GoTemplate is still in beta and has some known bugs (this is why the tests fail).
