@@ -318,6 +318,9 @@ var tags_tests = []test{
 	{"{% remove \"hello\",\" \",\"\t\" %}	  {% if false %}	          hello     	{% endif %}   	 	{% endremove %}", "", nil, ""},
 	{"{% remove %}	  {% if false %}	          hello    		{%else%}   yes 	{% endif %}   	 	{% endremove %}", "yes", nil, ""}, // remove without any argument defaults to empty spaces, tabs and new lines.
 
+	// Block/Extends
+	{"{% extends \"base\" %}  This doesn't show up {% block name %}Florian{% endblock %}", "Hello Florian!", nil, ""},
+
 	// Custom tag.. 
 	// TODO
 }
@@ -328,8 +331,20 @@ var tests = map[string][]test{
 	"tags":     tags_tests,
 }
 
+var base1 = "Hello {% block name %}Josh{% endblock %}!"
+
+func getTemplateCallback(name *string) (*string, error) {
+	switch *name {
+	case "base":
+		return &base1, nil
+	default:
+		return nil, errors.New("Could not find the template")
+	}
+	panic("unreachable")
+}
+
 func execTpl(in string, ctx *Context) (*string, error) {
-	tpl, err := FromString("gotest", &in, nil)
+	tpl, err := FromString("gotest", &in, getTemplateCallback)
 	if err != nil {
 		return nil, err
 	}

@@ -698,15 +698,26 @@ func tagExtends(args *string, tpl *Template, ctx *Context) (*string, error) {
 	if len(_args) <= 0 {
 		return nil, errors.New("Please provide at least a filename to extend from.")
 	}
-	name := _args[0]
-	//raw_context := _args[1:]
-
-	// Create new template
-	base_tpl_content, err := tpl.locator(&name)
+	e, err := newExpr(&_args[0])
 	if err != nil {
 		return nil, err
 	}
-	base_tpl, err := FromString(name, base_tpl_content, tpl.locator)
+	name, err := e.evalString(ctx)
+	if err != nil {
+		return nil, err
+	}
+	//raw_context := _args[1:]
+
+	// Create new template
+	if tpl.locator == nil {
+		panic(fmt.Sprintf("Please provide a template locator to lookup template '%v'.", *name))
+	}
+	 
+	base_tpl_content, err := tpl.locator(name)
+	if err != nil {
+		return nil, err
+	}
+	base_tpl, err := FromString(*name, base_tpl_content, tpl.locator)
 	if err != nil {
 		return nil, err
 	}
