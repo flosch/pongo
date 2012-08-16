@@ -21,6 +21,7 @@ var Tags = map[string]*TagHandler{
 	"block":     &TagHandler{Execute: tagBlock}, // Needs no Ignore-function because nested-blocks aren't allowed
 	"endblock":  nil,
 	"extends":   &TagHandler{Execute: tagExtends},
+	"include":   &TagHandler{Execute: tagInclude},
 	"trim":      &TagHandler{Execute: tagTrim, Ignore: tagTrimIgnore},
 	"endtrim":   nil,
 	"remove":    &TagHandler{Execute: tagRemove, Ignore: tagRemoveIgnore},
@@ -743,3 +744,47 @@ func tagExtends(args *string, tpl *Template, ctx *Context) (*string, error) {
 
 	return base_tpl.Execute(ctx)
 }
+
+
+
+func tagInclude(args *string, tpl *Template, ctx *Context) (*string, error) {
+	// Includes a template and executes it 
+
+	// Example: {% extends "base.html" abc=<expr> ghi=<expr> ... %}
+	_args := strings.Split(*args, " ")
+	if len(_args) <= 0 {
+		return nil, errors.New("Please provide at least a filename to extend from.")
+	}
+	e, err := newExpr(&_args[0])
+	if err != nil {
+		return nil, err
+	}
+	name, err := e.evalString(ctx)
+	if err != nil {
+		return nil, err
+	}
+	//raw_context := _args[1:]
+
+	// Create new template
+	if tpl.locator == nil {
+		panic(fmt.Sprintf("Please provide a template locator to lookup template '%v'.", *name))
+	}
+	 
+	base_tpl_content, err := tpl.locator(name)
+	if err != nil {
+		return nil, err
+	}
+	base_tpl, err := FromString(*name, base_tpl_content, tpl.locator)
+	if err != nil {
+		return nil, err
+	}
+
+	/**out, err := base_tpl.Execute(ctx)
+	if err != nil {
+		return err
+	}
+	
+	return *out*/
+	return base_tpl.Execute(ctx)
+}
+

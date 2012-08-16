@@ -320,8 +320,15 @@ var tags_tests = []test{
 
 	// Block/Extends
 	{"{% extends \"base\" %}  This doesn't show up {% block name %}Florian{% endblock %}", "Hello Florian!", nil, ""},
+	{"{% extends tpl_name %}  This doesn't show up {% block name %}Florian{% endblock %}", "Hello Florian!", Context{"tpl_name": "base"}, ""},
 	{"{% extends \"base\" %}  This doesn't show up", "Hello Josh!", nil, ""},
 	{"{% extends \"base2\" %}  This doesn't show up {% block name %}Florian{% endblock %}", "", nil, "Could not find the template"},
+
+	// Include
+	{"{% include \"greetings\" %} How are you today?", "Hello Flo! How are you today?", Context{"name": "flo"}, ""},
+	{"{% include tpl_name %} How are you today?", "Hello Flo! How are you today?", Context{"name": "flo", "tpl_name": "greetings"}, ""},
+	{"{% include \"foobar\" %} This and that", "", nil, "Could not find the template"},
+	{"{% include \"greetings_with_errors\" %} This and that", "", nil, "[Parsing error: greetings_with_errors] [Line 1, Column 27] Filter 'notexistent' not found"},
 
 	// Custom tag.. 
 	// TODO
@@ -334,11 +341,17 @@ var tests = map[string][]test{
 }
 
 var base1 = "Hello {% block name %}Josh{% endblock %}!"
+var greetings1 = "Hello {{ name|capitalize }}!"
+var greetings_with_errors = "Hello {{ name|notexistent }}!"
 
 func getTemplateCallback(name *string) (*string, error) {
 	switch *name {
 	case "base":
 		return &base1, nil
+	case "greetings":
+		return &greetings1, nil
+	case "greetings_with_errors":
+		return &greetings_with_errors, nil
 	default:
 		return nil, errors.New("Could not find the template")
 	}
