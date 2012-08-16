@@ -597,6 +597,8 @@ func tagForIgnore(args *string, tpl *Template) error {
 func tagBlock(args *string, tpl *Template, ctx *Context) (*string, error) {
 	renderedStrings := make([]string, 0, len(tpl.nodes)-tpl.node_pos)
 
+	// TODO: Prevent nested block-tags
+
 	// Check whether we replace this block by a internal Context or 
 	// if we render the default content
 	child_block, has_childblock := tpl.internal_context[fmt.Sprintf("block_%s", *args)]
@@ -707,13 +709,13 @@ func tagExtends(args *string, tpl *Template, ctx *Context) (*string, error) {
 	if err != nil {
 		return nil, err
 	}
-	//raw_context := _args[1:]
+	//raw_context := _args[1:] // TODO
 
 	// Create new template
 	if tpl.locator == nil {
 		panic(fmt.Sprintf("Please provide a template locator to lookup template '%v'.", *name))
 	}
-	 
+
 	base_tpl_content, err := tpl.locator(name)
 	if err != nil {
 		return nil, err
@@ -745,12 +747,10 @@ func tagExtends(args *string, tpl *Template, ctx *Context) (*string, error) {
 	return base_tpl.Execute(ctx)
 }
 
-
-
 func tagInclude(args *string, tpl *Template, ctx *Context) (*string, error) {
 	// Includes a template and executes it 
 
-	// Example: {% extends "base.html" abc=<expr> ghi=<expr> ... %}
+	// Example: {% include "base.html" abc=<expr> ghi=<expr> ... %}
 	_args := strings.Split(*args, " ")
 	if len(_args) <= 0 {
 		return nil, errors.New("Please provide at least a filename to extend from.")
@@ -763,13 +763,13 @@ func tagInclude(args *string, tpl *Template, ctx *Context) (*string, error) {
 	if err != nil {
 		return nil, err
 	}
-	//raw_context := _args[1:]
+	//raw_context := _args[1:]  // TODO
 
 	// Create new template
 	if tpl.locator == nil {
 		panic(fmt.Sprintf("Please provide a template locator to lookup template '%v'.", *name))
 	}
-	 
+
 	base_tpl_content, err := tpl.locator(name)
 	if err != nil {
 		return nil, err
@@ -779,12 +779,5 @@ func tagInclude(args *string, tpl *Template, ctx *Context) (*string, error) {
 		return nil, err
 	}
 
-	/**out, err := base_tpl.Execute(ctx)
-	if err != nil {
-		return err
-	}
-	
-	return *out*/
 	return base_tpl.Execute(ctx)
 }
-
