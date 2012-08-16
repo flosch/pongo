@@ -320,6 +320,8 @@ var tags_tests = []test{
 
 	// Block/Extends
 	{"{% extends \"base\" %}  This doesn't show up {% block name %}Florian{% endblock %}", "Hello Florian!", nil, ""},
+	{"{% extends \"base\" %}  This doesn't show up", "Hello Josh!", nil, ""},
+	{"{% extends \"base2\" %}  This doesn't show up {% block name %}Florian{% endblock %}", "", nil, "Could not find the template"},
 
 	// Custom tag.. 
 	// TODO
