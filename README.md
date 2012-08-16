@@ -20,3 +20,5 @@ See GoPkgDoc for a list of implemented filters/tags and how to use the simple AP
 [http://go.pkgdoc.org/github.com/flosch/GoTemplate/src](http://go.pkgdoc.org/github.com/flosch/GoTemplate/src)
 
 GoTemplate is still in beta and has some known bugs (this is why the tests fail).
+
+GoTemplate is licensed under the MIT-license (see LICENSE file for more).
