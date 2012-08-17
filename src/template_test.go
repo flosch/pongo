@@ -73,6 +73,14 @@ var standard_tests = []test{
 	... Line 2
 	... Line 3
 	{{ }}`, "", nil, "Line 4, Column 5"}, // Line/col tests, with tab as one char
+	
+	// Comments
+	{"{# This is a simple comment #}", "", nil, ""},
+	{`{# This is a simple multi-line
+	...
+	comment
+	
+#}`, "", nil, ""},
 
 	// Trivial errors
 	{"", "", nil, "Template has no content"},
