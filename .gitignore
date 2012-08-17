@@ -1,6 +1,4 @@
-src/example/*
 pkg/
 bin/
-README.md~
+*~
 .project
-/LICENSE~
