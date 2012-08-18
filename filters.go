@@ -74,7 +74,7 @@ func filterSafe(value interface{}, args []interface{}, ctx *FilterChainContext) 
 func filterLower(value interface{}, args []interface{}, ctx *FilterChainContext) (interface{}, error) {
 	str, is_str := value.(string)
 	if !is_str {
-		return nil, errors.New(fmt.Sprintf("%v is not of type string", value))
+		return nil, errors.New(fmt.Sprintf("%v (%T) is not of type string", value, value))
 	}
 	return strings.ToLower(str), nil
 }
@@ -82,7 +82,7 @@ func filterLower(value interface{}, args []interface{}, ctx *FilterChainContext)
 func filterUpper(value interface{}, args []interface{}, ctx *FilterChainContext) (interface{}, error) {
 	str, is_str := value.(string)
 	if !is_str {
-		return nil, errors.New(fmt.Sprintf("%v is not of type string", value))
+		return nil, errors.New(fmt.Sprintf("%v (%T) is not of type string", value, value))
 	}
 	return strings.ToUpper(str), nil
 }
@@ -90,7 +90,7 @@ func filterUpper(value interface{}, args []interface{}, ctx *FilterChainContext)
 func filterCapitalize(value interface{}, args []interface{}, ctx *FilterChainContext) (interface{}, error) {
 	str, is_str := value.(string)
 	if !is_str {
-		return nil, errors.New(fmt.Sprintf("%v is not of type string", value))
+		return nil, errors.New(fmt.Sprintf("%v (%T) is not of type string", value, value))
 	}
 	return strings.Title(str), nil
 }
@@ -98,7 +98,7 @@ func filterCapitalize(value interface{}, args []interface{}, ctx *FilterChainCon
 func filterTrim(value interface{}, args []interface{}, ctx *FilterChainContext) (interface{}, error) {
 	str, is_str := value.(string)
 	if !is_str {
-		return nil, errors.New(fmt.Sprintf("%v is not of type string", value))
+		return nil, errors.New(fmt.Sprintf("%v (%T) is not of type string", value, value))
 	}
 	return strings.TrimSpace(str), nil
 }
@@ -146,7 +146,7 @@ func filterStriptags(value interface{}, args []interface{}, ctx *FilterChainCont
 	if len(args) > 1 {
 		return nil, errors.New("Please provide a comma-seperated string with tags (or no string to remove all tags).")
 	}
-	
+
 	if len(args) == 1 {
 		taglist, is_string := args[0].(string)
 		if !is_string {
@@ -154,7 +154,7 @@ func filterStriptags(value interface{}, args []interface{}, ctx *FilterChainCont
 		}
 
 		tags := strings.Split(taglist, ",")
-	
+
 		for _, tag := range tags {
 			re := regexp.MustCompile(fmt.Sprintf("</?%s/?>", tag))
 			str = re.ReplaceAllString(str, "")

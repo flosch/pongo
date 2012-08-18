@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 )
 
 type Person struct {
@@ -73,7 +74,7 @@ var standard_tests = []test{
 	... Line 2
 	... Line 3
 	{{ }}`, "", nil, "Line 4, Column 5"}, // Line/col tests, with tab as one char
-	
+
 	// Comments
 	{"{# This is a simple comment #}", "", nil, ""},
 	{`{# This is a simple multi-line
@@ -143,6 +144,9 @@ var standard_tests = []test{
 	{"{{ person.SayHelloTo:\"Cowboy, Mike\",\"Cowboy, Thorsten\" }}", "Hello to Cowboy, Mike and Cowboy, Thorsten from Flo!", Context{"person": &person}, ""}, // call w/ args (w/ pointer) 
 	{"{{ person.SayHelloTo:\"Cowboy, Mike\",\"Cowboy, Thorsten\" }}", "", Context{"person": person}, ""},                                                      // call w/ args (w/o pointer)
 	{"{{ person.SayHelloTo:5,\"Cowboy, Thorsten\" }}", "", Context{"person": person}, ""},                                                                     // call w/ args (w/o pointer) (wrong arg type)
+
+	// Time samples (no need for a date-filter, because you can simply call time's Format method from GoTemplate)
+	{"{{ mydate.Format:\"02.01.2006 15:04:05\" }}", "18.08.2012 10:49:12", Context{"mydate": time.Date(2012, time.August, 18, 10, 49, 12, 0, time.Now().Location())}, ""},
 }
 
 var filter_tests = []test{
