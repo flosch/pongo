@@ -19,7 +19,7 @@ Please have a look at the test (`template_test.go`) for examples.
 
 See GoPkgDoc for a list of implemented filters/tags and how to use the simple API:
 
-[http://go.pkgdoc.org/github.com/flosch/GoTemplate/src](http://go.pkgdoc.org/github.com/flosch/GoTemplate/src)
+[http://go.pkgdoc.org/github.com/flosch/GoTemplate](http://go.pkgdoc.org/github.com/flosch/GoTemplate)
 
 You can simply add your own filters/tags. See the template_test.go for an example implementation.
 
