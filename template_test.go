@@ -173,7 +173,7 @@ var filter_tests = []test{
 	// Safe + Unsafe
 	{"{{ \"<script>...</script>\" }}", "&lt;script&gt;...&lt;/script&gt;", nil, ""},                // auto-safe
 	{"{{ \"<script>...</script>\"|unsafe }}", "<script>...</script>", nil, ""},                     // unsafe
-	{"{{ \"<script>...</script>\"|safe|safe|safe }}", "&lt;script&gt;...&lt;/script&gt;", nil, ""}, // auto-safe, // explicit multiple safes
+	{"{{ \"<script>...</script>\"|safe|safe|safe }}", "&lt;script&gt;...&lt;/script&gt;", nil, ""}, // explicit multiple safes
 
 	// Default
 	{"{{ \"\"|default:\"yes\" }}", "yes", nil, ""},
