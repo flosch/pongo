@@ -13,6 +13,8 @@ package template
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
 	"strings"
 )
 
@@ -349,6 +351,62 @@ func (tn *tagNode) execute(tpl *Template, ctx *Context) (*string, error) {
 	out, err := tn.taghandler.Execute(&tn.tagargs, tpl, ctx)
 	return out, err
 	//return fmt.Sprintf("<tag='%s'>", tn.content), nil, 1
+}
+
+// Reads a template from file. If there's no templateLocator provided, 
+// one will be created to search for files in the same directory the template
+// file is located. file_path can either be an absolute filepath or a relative one.
+func FromFile(file_path string, locator templateLocator) (*Template, error) {
+	var err error
+
+	// What is file_path?
+	if !filepath.IsAbs(file_path) {
+		file_path, err = filepath.Abs(file_path)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	buf, err := ioutil.ReadFile(file_path)
+	if err != nil {
+		return nil, err
+	}
+
+	file_base := filepath.Dir(file_path)
+
+	if locator == nil {
+		// Create a default locator
+		locator = func(name *string) (*string, error) {
+			filename := *name
+			if !filepath.IsAbs(filename) {
+				filename = filepath.Join(file_base, filename)
+			}
+
+			buf, err := ioutil.ReadFile(filename)
+			if err != nil {
+				return nil, errors.New(fmt.Sprintf("Could not find the template '%s' (default file locator): %v", filename, err))
+			}
+
+			bufstr := string(buf)
+			return &bufstr, nil
+		}
+	}
+
+	// Get file name from filepath
+	name := filepath.Base(file_path)
+
+	strbuf := string(buf)
+	tpl, err := newTemplate(name, &strbuf, locator)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tpl.parse()
+	if err != nil {
+		return nil, err
+	}
+
+	return tpl, nil
 }
 
 // Creates a new template instance from string.

@@ -3,6 +3,7 @@ package template
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -346,10 +347,16 @@ var tags_tests = []test{
 	// TODO
 }
 
-var tests = map[string][]test{
+var string_tests = map[string][]test{
 	"standard": standard_tests,
 	"filter":   filter_tests,
 	"tags":     tags_tests,
+}
+
+var file_tests = []test{
+	// General
+	{"template_examples/index1.html", "", Context{"basename": "generic/base-notexistent.html"}, "Could not find the template"},
+	{"template_examples/index1.html", "<html><head><title>Myindex</title></head><body></body></html>", Context{"basename": "generic/base1.html"}, ""},
 }
 
 var base1 = "Hello {% block name %}Josh{% endblock %}!"
@@ -384,7 +391,7 @@ func execTpl(in string, ctx *Context) (*string, error) {
 	}
 }*/
 
-func TestSuites(t *testing.T) {
+func TestFromString(t *testing.T) {
 	// Provide custom filter
 	Filters["add"] = func(value interface{}, args []interface{}, ctx *FilterChainContext) (interface{}, error) {
 		i, is_int := value.(int)
@@ -404,7 +411,7 @@ func TestSuites(t *testing.T) {
 	// Provide custom tag
 	Tags["set"] = nil // TODO
 
-	for name, testsuite := range tests {
+	for name, testsuite := range string_tests {
 		for _, test := range testsuite {
 			out, err := execTpl(test.tpl, &test.ctx)
 			if err != nil {
@@ -427,6 +434,46 @@ func TestSuites(t *testing.T) {
 				t.Errorf("[Suite: %s] Test '%s' FAILED; got='%s' should='%s'", name, test.tpl, *out, test.output)
 				continue
 			}
+		}
+	}
+}
+
+func TestFromFile(t *testing.T) {
+	for _, test := range file_tests {
+		name := test.tpl
+
+		if !filepath.IsAbs(name) {
+			abs_name, err := filepath.Abs(name)
+			if err != nil {
+				t.Fatalf(err.Error())
+			}
+			name = abs_name
+		}
+
+		tpl, err := FromFile(name, nil)
+		if err != nil {
+			t.Fatalf("Template test file not found: %s", name)
+		}
+		out, err := tpl.Execute(&test.ctx)
+		if err != nil {
+			if test.err != "" {
+				if strings.Contains(strings.ToLower(err.Error()), strings.ToLower(test.err)) {
+					// Err found which is expected
+					continue
+				}
+				t.Errorf("FileTest '%s' FAILED (was expecting '%s' in error msg): %v", test.tpl, test.err, err)
+				continue
+			}
+			t.Errorf("File-Test '%s' FAILED: %v", test.tpl, err)
+			continue
+		}
+		if test.err != "" {
+			t.Errorf("File-Test '%s' SUCCEEDED, but FAIL ('%s' in error msg) was EXPECTED; got output: '%s'", test.tpl, test.err, *out)
+			continue
+		}
+		if *out != test.output {
+			t.Errorf("File-Test '%s' FAILED; got='%s' should='%s'", test.tpl, *out, test.output)
+			continue
 		}
 	}
 }
