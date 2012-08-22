@@ -1,15 +1,5 @@
 package pongo
 
-/* Examples:
- * {% if a.test == b.bla %}
- * {{ name|capitalize }}
- * {{ date|fmt:"H:m d.m.Y" }}
- * {% if name|lower == "florian" %}
- * {# My comment
- *    goes over several lines 
- * #}
- */
-
 import (
 	"errors"
 	"fmt"
@@ -53,10 +43,17 @@ type tagNode struct {
 
 type node interface {
 	// A node must implement a execute() function which gets called when the template is executed
-	execute(*Template, *Context) (*string, error)
+	execute(*Template, *executionContext, *Context) (*string, error)
 	getLine() int
 	getCol() int
 	getContent() *string
+}
+
+// This context contains all running information; it's access
+// is synchronized to ensure thread-safety
+type executionContext struct {
+	node_pos         int
+	internal_context Context
 }
 
 type templateLocator func(*string) (*string, error)
@@ -73,17 +70,15 @@ type Template struct {
 	start  int
 	length int
 
-	// Error handling
-	err  string // contains nothing if there was no (parsing|executing) error
-	line int
-	col  int
+	// Error handling for parsing
+	parseErr string // contains nothing if there was no parsing error
+	line     int
+	col      int
 
-	// Execution
-	autosafe         bool
-	nodes            []node
-	node_pos         int
-	locator          templateLocator
-	internal_context Context
+	// Parsed stuff
+	autosafe bool
+	nodes    []node
+	locator  templateLocator
 }
 
 type stateFunc func(*Template) stateFunc
@@ -91,7 +86,7 @@ type stateFunc func(*Template) stateFunc
 func processComment(tpl *Template) stateFunc {
 	c, success := tpl.getChar(0)
 	if !success {
-		tpl.err = "File end reached within comment"
+		tpl.parseErr = "File end reached within comment"
 		return nil
 	}
 
@@ -99,7 +94,7 @@ func processComment(tpl *Template) stateFunc {
 		// Check next char for }
 		nc, success := tpl.getChar(1) // curr + 1
 		if !success {
-			tpl.err = "File end reached within comment"
+			tpl.parseErr = "File end reached within comment"
 			return nil
 		}
 		if nc == '}' {
@@ -117,7 +112,7 @@ func processComment(tpl *Template) stateFunc {
 func processFilter(tpl *Template) stateFunc {
 	c, success := tpl.getChar(0)
 	if !success {
-		tpl.err = "File end reached within filter"
+		tpl.parseErr = "File end reached within filter"
 		return nil
 	}
 
@@ -125,14 +120,14 @@ func processFilter(tpl *Template) stateFunc {
 		// Check next char for }
 		nc, success := tpl.getChar(1) // curr + 1
 		if !success {
-			tpl.err = "File end reached within filter"
+			tpl.parseErr = "File end reached within filter"
 			return nil
 		}
 		if nc == '}' {
 			// Add new filter node
 			err := addFilterNode(tpl)
 			if err != nil {
-				tpl.err = err.Error()
+				tpl.parseErr = err.Error()
 				return nil
 			}
 
@@ -152,7 +147,7 @@ func processFilter(tpl *Template) stateFunc {
 func processTag(tpl *Template) stateFunc {
 	c, success := tpl.getChar(0)
 	if !success {
-		tpl.err = "File end reached within tag"
+		tpl.parseErr = "File end reached within tag"
 		return nil
 	}
 
@@ -160,14 +155,14 @@ func processTag(tpl *Template) stateFunc {
 		// Check next char for }
 		nc, success := tpl.getChar(1) // curr + 1
 		if !success {
-			tpl.err = "File end reached within tag"
+			tpl.parseErr = "File end reached within tag"
 			return nil
 		}
 		if nc == '}' {
 			// Add new filter node
 			err := addTagNode(tpl)
 			if err != nil {
-				tpl.err = err.Error()
+				tpl.parseErr = err.Error()
 				return nil
 			}
 
@@ -196,7 +191,7 @@ func processContent(tpl *Template) stateFunc {
 		// Get next char
 		nc, success := tpl.getChar(1)
 		if !success {
-			tpl.err = "File end reached (after opening '{')"
+			tpl.parseErr = "File end reached (after opening '{')"
 			return nil
 		}
 
@@ -216,7 +211,7 @@ func processContent(tpl *Template) stateFunc {
 			tpl.start = tpl.pos // y??????
 			return processFilter
 		default:
-			tpl.err = fmt.Sprintf("Unknown open command ('%c').", nc)
+			tpl.parseErr = fmt.Sprintf("Unknown open command ('%c').", nc)
 			return nil
 		}
 	}
@@ -246,7 +241,7 @@ func (cn *contentNode) getCol() int         { return cn.col }
 func (cn *contentNode) getLine() int        { return cn.line }
 func (cn *contentNode) getContent() *string { return &cn.content }
 
-func (cn *contentNode) execute(tpl *Template, ctx *Context) (*string, error) {
+func (cn *contentNode) execute(tpl *Template, execCtx *executionContext, ctx *Context) (*string, error) {
 
 	return &cn.content, nil
 }
@@ -286,7 +281,7 @@ func (fn *filterNode) getCol() int         { return fn.col }
 func (fn *filterNode) getLine() int        { return fn.line }
 func (fn *filterNode) getContent() *string { return &fn.content }
 
-func (fn *filterNode) execute(tpl *Template, ctx *Context) (*string, error) {
+func (fn *filterNode) execute(tpl *Template, execCtx *executionContext, ctx *Context) (*string, error) {
 	//fmt.Printf("<filter '%s' expr=%s>\n", fn.content, fn.e)
 	out, err := fn.e.evalString(ctx)
 	/*if err != nil {
@@ -337,7 +332,7 @@ func (tn *tagNode) getCol() int         { return tn.col }
 func (tn *tagNode) getLine() int        { return tn.line }
 func (tn *tagNode) getContent() *string { return &tn.content }
 
-func (tn *tagNode) execute(tpl *Template, ctx *Context) (*string, error) {
+func (tn *tagNode) execute(tpl *Template, execCtx *executionContext, ctx *Context) (*string, error) {
 	// Split tag from args and call it
 	// Examples:
 	// - If-clause: if name|lower == "florian"
@@ -349,7 +344,7 @@ func (tn *tagNode) execute(tpl *Template, ctx *Context) (*string, error) {
 		return nil, errors.New(fmt.Sprintf("Unhandled placeholder (for example 'endif' for an if-clause): '%s'", tn.tagname))
 	}
 
-	out, err := tn.taghandler.Execute(&tn.tagargs, tpl, ctx)
+	out, err := tn.taghandler.Execute(&tn.tagargs, tpl, execCtx, ctx)
 	return out, err
 	//return fmt.Sprintf("<tag='%s'>", tn.content), nil, 1
 }
@@ -451,7 +446,6 @@ func newTemplate(name string, tplstr *string, locator templateLocator) (*Templat
 		nodes:            make([]node, 0, 250),
 		autosafe:         true,
 		locator:          locator,
-		internal_context: make(Context),
 	}
 
 	return tpl, nil
@@ -470,17 +464,13 @@ func (tpl *Template) parse() error {
 		state = state(tpl)
 	}
 
-	if len(tpl.err) > 0 { // Parsing error occurred?
-		return errors.New(fmt.Sprintf("[Parsing error: %s] [Line %d, Column %d] %s", tpl.name, tpl.line, tpl.col, tpl.err))
+	if len(tpl.parseErr) > 0 { // Parsing error occurred?
+		return errors.New(fmt.Sprintf("[Parsing error: %s] [Line %d, Column %d] %s", tpl.name, tpl.line, tpl.col, tpl.parseErr))
 	}
 
 	tpl.parsed = true
 
 	return nil
-}
-
-func (tpl *Template) setInternalContext(ctx *Context) {
-	tpl.internal_context = *ctx
 }
 
 // Executes the template with the given context and write to http.ResponseWriter
@@ -497,7 +487,25 @@ func (tpl *Template) ExecuteRW(w http.ResponseWriter, ctx *Context) error {
 
 // Executes the template with the given context (can be nil).
 func (tpl *Template) Execute(ctx *Context) (*string, error) {
-	// fmt.Printf("[Template] Node items = %d\n", len(tpl.nodes))
+	return tpl.execute(ctx, nil)
+}
+
+func newExecutionContext(internalContext *Context) *executionContext {
+	var ctx Context
+	if internalContext == nil {
+		ctx = make(Context)
+	} else {
+		ctx = *internalContext
+	}
+	return &executionContext{
+		internal_context: ctx,
+	}
+}
+
+func (tpl *Template) execute(ctx *Context, execCtx *executionContext) (*string, error) {
+	if execCtx == nil {
+		execCtx = newExecutionContext(nil)
+	} 
 
 	if ctx == nil {
 		ctx = &Context{}
@@ -508,16 +516,16 @@ func (tpl *Template) Execute(ctx *Context) (*string, error) {
 	// TODO: We could replace this code by executeUntilAnyTagNode(ctx), but
 	// it then includes some more interface checks which could hurt performance.
 	// Not sure about this.
-	tpl.node_pos = 0
-	for tpl.node_pos < len(tpl.nodes) {
-		node := tpl.nodes[tpl.node_pos]
-		str, err := node.execute(tpl, ctx)
+	execCtx.node_pos = 0
+	for execCtx.node_pos < len(tpl.nodes) {
+		node := tpl.nodes[execCtx.node_pos]
+		str, err := node.execute(tpl, execCtx, ctx)
 		if err != nil {
 			return nil, errors.New(fmt.Sprintf("[Error: %s] [Line %d Col %d (%s)] %s", tpl.name, node.getLine(), node.getCol(), *node.getContent(), err))
 		}
 		renderedStrings = append(renderedStrings, *str)
 
-		tpl.node_pos++
+		execCtx.node_pos++
 	}
 
 	outputString := strings.Join(renderedStrings, "")
@@ -525,15 +533,15 @@ func (tpl *Template) Execute(ctx *Context) (*string, error) {
 	return &outputString, nil
 }
 
-func (tpl *Template) executeUntilAnyTagNode(ctx *Context, nodenames ...string) (*tagNode, *[]string, error) {
-	renderedStrings := make([]string, 0, len(tpl.nodes)-tpl.node_pos)
+func (tpl *Template) executeUntilAnyTagNode(ctx *Context, execCtx *executionContext, nodenames ...string) (*tagNode, *[]string, error) {
+	renderedStrings := make([]string, 0, len(tpl.nodes)-execCtx.node_pos)
 
 	// To avoid recursion, we first increase tpl.node_pos by one
 	// (because the current node pos might point to the tag which calls executeUntilAnyTagNode)
-	tpl.node_pos++
+	execCtx.node_pos++
 
-	for tpl.node_pos < len(tpl.nodes) {
-		node := tpl.nodes[tpl.node_pos]
+	for execCtx.node_pos < len(tpl.nodes) {
+		node := tpl.nodes[execCtx.node_pos]
 		if tn, is_tag := node.(*tagNode); is_tag {
 			for _, name := range nodenames {
 				if tn.tagname == name {
@@ -543,25 +551,25 @@ func (tpl *Template) executeUntilAnyTagNode(ctx *Context, nodenames ...string) (
 				}
 			}
 		}
-		str, err := node.execute(tpl, ctx)
+		str, err := node.execute(tpl, execCtx, ctx)
 		if err != nil {
 			return nil, nil, errors.New(fmt.Sprintf("[Error in block-execution: %s] [Line %d Col %d (%s)] %s", tpl.name, node.getLine(), node.getCol(), *node.getContent(), err))
 		}
 		renderedStrings = append(renderedStrings, *str)
-		tpl.node_pos++
+		execCtx.node_pos++
 	}
 
 	// One nodename MUST be executed! Otherwise error.
 	return nil, nil, errors.New(fmt.Sprintf("No end-node (possible nodes: %v) found.", nodenames))
 }
 
-func (tpl *Template) ignoreUntilAnyTagNode(nodenames ...string) (*tagNode, error) {
+func (tpl *Template) ignoreUntilAnyTagNode(execCtx *executionContext, nodenames ...string) (*tagNode, error) {
 	// To avoid recursion, we first increase tpl.node_pos by one
 	// (because the current node pos might point to the tag which calls executeUntilAnyTagNode)
-	tpl.node_pos++
+	execCtx.node_pos++
 
-	for tpl.node_pos < len(tpl.nodes) {
-		node := tpl.nodes[tpl.node_pos]
+	for execCtx.node_pos < len(tpl.nodes) {
+		node := tpl.nodes[execCtx.node_pos]
 		if tn, is_tag := node.(*tagNode); is_tag {
 			for _, name := range nodenames {
 				if tn.tagname == name {
@@ -571,10 +579,10 @@ func (tpl *Template) ignoreUntilAnyTagNode(nodenames ...string) (*tagNode, error
 			}
 			// Is not in nodenames, so ignore the tag!
 			if tn.taghandler != nil && tn.taghandler.Ignore != nil {
-				tn.taghandler.Ignore(&tn.tagargs, tpl)
+				tn.taghandler.Ignore(&tn.tagargs, tpl, execCtx)
 			}
 		}
-		tpl.node_pos++
+		execCtx.node_pos++
 	}
 
 	// One nodename MUST be executed! Otherwise error.
