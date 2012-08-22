@@ -27,7 +27,7 @@ Please have a look at the test (`template_test.go`) for examples.
 	var tplExample = pongo.Must(pongo.FromFile("example.html", nil))
 	
 	func examplePage(w http.ResponseWriter, r *http.Request) {
-		err := tplExample.ExecuteRW(w, nil)
+		err := tplExample.ExecuteRW(w, &pongo.Context{"query": r.FormValue("query")})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
