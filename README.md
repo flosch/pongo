@@ -1,4 +1,4 @@
-Pongo is a template engine which implements a [Django-template](https://docs.djangoproject.com/en/dev/topics/templates/)-like syntax.
+pongo is a template engine which implements a [Django-template](https://docs.djangoproject.com/en/dev/topics/templates/)-like syntax.
 
 Please have a look at the test (`template_test.go`) for examples.
 
@@ -20,7 +20,7 @@ Please have a look at the test (`template_test.go`) for examples.
 	package main
 	
 	import (
-		"github.com/flosch/Pongo"
+		"github.com/flosch/pongo"
 		"net/http"
 	)
 	
@@ -42,14 +42,14 @@ Please have a look at the test (`template_test.go`) for examples.
 
 See GoPkgDoc for a list of implemented filters/tags and how to use the simple API:
 
-[http://go.pkgdoc.org/github.com/flosch/Pongo](http://go.pkgdoc.org/github.com/flosch/Pongo)
+[http://go.pkgdoc.org/github.com/flosch/pongo](http://go.pkgdoc.org/github.com/flosch/pongo)
 
 You can simply add your own filters/tags. See the template_test.go for an example implementation.
 
 # Status
 
-Pongo is still in beta and has a very few known bugs (this is why the tests fail).
+pongo is still in beta and has a very few known bugs (this is why the tests fail).
 
 # License
 
-Pongo is licensed under the MIT-license (see LICENSE file for more).
+pongo is licensed under the MIT-license (see LICENSE file for more).
