@@ -1,4 +1,4 @@
-package template
+package pongo
 
 // TODO: Add context-sensitive filters (so they know their location, e.g. for 
 // context-sensitive escaping within javascript <-> normal body html.)

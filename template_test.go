@@ -1,4 +1,4 @@
-package template
+package pongo
 
 import (
 	"errors"
@@ -110,10 +110,10 @@ var standard_tests = []test{
 	// Simple variables
 	{"{{ foo }}", "", nil, ""},
 	{"{{ foo.bar }}", "", nil, ""},
-	{"{{ name }}", "GoTemplate", Context{"name": "GoTemplate"}, ""},
-	{"{{ name.5 }}", "p", Context{"name": "GoTemplate"}, ""},
-	{"{{ name.five }}", "p", Context{"name": "GoTemplate", "five": 5}, ""},
-	{"{{ name.five.0 }}", "p", Context{"name": "GoTemplate", "five": 5}, ""},
+	{"{{ name }}", "Pongo", Context{"name": "Pongo"}, ""},
+	{"{{ name.3 }}", "g", Context{"name": "Pongo"}, ""},
+	{"{{ name.three }}", "g", Context{"name": "Pongo", "three": 3}, ""},
+	{"{{ name.three.0 }}", "g", Context{"name": "Pongo", "three": 3}, ""},
 
 	// Context item access
 	{"{{ person.Name }}", "Florian", Context{"person": &person}, ""},
@@ -146,7 +146,7 @@ var standard_tests = []test{
 	{"{{ person.SayHelloTo:\"Cowboy, Mike\",\"Cowboy, Thorsten\" }}", "", Context{"person": person}, ""},                                                      // call w/ args (w/o pointer)
 	{"{{ person.SayHelloTo:5,\"Cowboy, Thorsten\" }}", "", Context{"person": person}, ""},                                                                     // call w/ args (w/o pointer) (wrong arg type)
 
-	// Time samples (no need for a date-filter, because you can simply call time's Format method from GoTemplate)
+	// Time samples (no need for a date-filter, because you can simply call time's Format method from Pongo)
 	{"{{ mydate.Format:\"02.01.2006 15:04:05\" }}", "18.08.2012 10:49:12", Context{"mydate": time.Date(2012, time.August, 18, 10, 49, 12, 0, time.Now().Location())}, ""},
 }
 

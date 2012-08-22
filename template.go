@@ -1,4 +1,4 @@
-package template
+package pongo
 
 /* Examples:
  * {% if a.test == b.bla %}
