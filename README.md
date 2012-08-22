@@ -5,11 +5,11 @@ Please have a look at the test (`template_test.go`) for examples.
 # A tiny example (template string)
 
 	in := "Hello {{ name|capitalize }}!"
-	tpl, err := template.FromString("mytemplatetest", &in, nil)
+	tpl, err := pongo.FromString("mytemplatetest", &in, nil)
 	if err != nil {
 		panic(err)
 	}
-	out, err := tpl.Execute(&template.Context{"name": "florian"})
+	out, err := tpl.Execute(&pongo.Context{"name": "florian"})
 	if err != nil {
 		panic(err)
 	}
@@ -24,7 +24,7 @@ Please have a look at the test (`template_test.go`) for examples.
 		"net/http"
 	)
 	
-	var tplExample = template.Must(template.FromFile("example.html", nil))
+	var tplExample = pongo.Must(pongo.FromFile("example.html", nil))
 	
 	func examplePage(w http.ResponseWriter, r *http.Request) {
 		err := tplExample.ExecuteRW(w, nil)
