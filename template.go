@@ -354,6 +354,17 @@ func (tn *tagNode) execute(tpl *Template, ctx *Context) (*string, error) {
 	//return fmt.Sprintf("<tag='%s'>", tn.content), nil, 1
 }
 
+// The Must function is a little helper to create a template instance from string/file.
+// It checks whether FromString/FromFile returns an error; if so, it panics. 
+// If not, it returns the template instance. Is's primarily used like this:
+//     var tplExample = template.Must(template.FromFile("example.html", nil))
+func Must(t *Template, err error) *Template {
+	if err != nil {
+		panic(err)
+	}
+	return t
+}
+
 // Reads a template from file. If there's no templateLocator provided, 
 // one will be created to search for files in the same directory the template
 // file is located. file_path can either be an absolute filepath or a relative one.
