@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"path/filepath"
 	"strings"
 )
@@ -471,10 +472,23 @@ func (tpl *Template) setInternalContext(ctx *Context) {
 	tpl.internal_context = *ctx
 }
 
+// Executes the template with the given context and write to http.ResponseWriter
+// on success. Context can be nil. Nothing is written on error; instead the error
+// is being returned.
+func (tpl *Template) ExecuteRW(w http.ResponseWriter, ctx *Context) error {
+	out, err := tpl.Execute(ctx)
+	if err != nil {
+		return err
+	}
+	w.Write([]byte(*out))
+	return nil
+}
+
+// Executes the template with the given context (can be nil).
 func (tpl *Template) Execute(ctx *Context) (*string, error) {
 	// fmt.Printf("[Template] Node items = %d\n", len(tpl.nodes))
 
-	if *ctx == nil {
+	if ctx == nil {
 		ctx = &Context{}
 	}
 
@@ -483,7 +497,7 @@ func (tpl *Template) Execute(ctx *Context) (*string, error) {
 	// TODO: We could replace this code by executeUntilAnyTagNode(ctx), but
 	// it then includes some more interface checks which could hurt performance.
 	// Not sure about this.
-
+	tpl.node_pos = 0
 	for tpl.node_pos < len(tpl.nodes) {
 		node := tpl.nodes[tpl.node_pos]
 		str, err := node.execute(tpl, ctx)

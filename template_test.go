@@ -357,6 +357,7 @@ var file_tests = []test{
 	// General
 	{"template_examples/index1.html", "", Context{"basename": "generic/base-notexistent.html"}, "Could not find the template"},
 	{"template_examples/index1.html", "<html><head><title>Myindex</title></head><body></body></html>", Context{"basename": "generic/base1.html"}, ""},
+	{"template_examples/index1.html", "<html><head><title>Myindex</title></head><body></body></html>", nil, "Could not find the template"},
 }
 
 var base1 = "Hello {% block name %}Josh{% endblock %}!"
@@ -377,12 +378,15 @@ func getTemplateCallback(name *string) (*string, error) {
 	panic("unreachable")
 }
 
-func execTpl(in string, ctx *Context) (*string, error) {
-	tpl, err := FromString("gotest", &in, getTemplateCallback)
+func execTpl(t *test) (*string, error) {
+	tpl, err := FromString("gotest", &t.tpl, getTemplateCallback)
 	if err != nil {
 		return nil, err
 	}
-	return tpl.Execute(ctx)
+	if t.ctx != nil {
+		return tpl.Execute(&t.ctx)
+	}
+	return tpl.Execute(nil)
 }
 
 /*func BenchmarkTemplate(b *testing.B) {
@@ -413,7 +417,7 @@ func TestFromString(t *testing.T) {
 
 	for name, testsuite := range string_tests {
 		for _, test := range testsuite {
-			out, err := execTpl(test.tpl, &test.ctx)
+			out, err := execTpl(&test)
 			if err != nil {
 				if test.err != "" {
 					if strings.Contains(strings.ToLower(err.Error()), strings.ToLower(test.err)) {
@@ -454,7 +458,12 @@ func TestFromFile(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Template test file not found: %s", name)
 		}
-		out, err := tpl.Execute(&test.ctx)
+		var out *string
+		if test.ctx != nil {
+			out, err = tpl.Execute(&test.ctx)
+		} else {
+			out, err = tpl.Execute(nil)
+		}
 		if err != nil {
 			if test.err != "" {
 				if strings.Contains(strings.ToLower(err.Error()), strings.ToLower(test.err)) {
