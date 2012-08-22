@@ -720,7 +720,7 @@ func tagExtends(args *string, tpl *Template, execCtx *executionContext, ctx *Con
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// TODO: Do the pre-rendering (FromString) in the parent's FromString(), just do the execution here.
 	base_tpl, err := FromString(*name, base_tpl_content, tpl.locator)
 	if err != nil {
@@ -774,7 +774,7 @@ func tagInclude(args *string, tpl *Template, execCtx *executionContext, ctx *Con
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// TODO: Do the pre-rendering (FromString) in the parent's FromString(), just do the execution here. 
 	base_tpl, err := FromString(*name, base_tpl_content, tpl.locator)
 	if err != nil {

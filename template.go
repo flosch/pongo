@@ -439,13 +439,13 @@ func newTemplate(name string, tplstr *string, locator templateLocator) (*Templat
 	}
 
 	tpl := &Template{
-		name:             name,
-		raw:              *tplstr,
-		line:             1,
-		rawLen:           tplLen,
-		nodes:            make([]node, 0, 250),
-		autosafe:         true,
-		locator:          locator,
+		name:     name,
+		raw:      *tplstr,
+		line:     1,
+		rawLen:   tplLen,
+		nodes:    make([]node, 0, 250),
+		autosafe: true,
+		locator:  locator,
 	}
 
 	return tpl, nil
@@ -505,7 +505,7 @@ func newExecutionContext(internalContext *Context) *executionContext {
 func (tpl *Template) execute(ctx *Context, execCtx *executionContext) (*string, error) {
 	if execCtx == nil {
 		execCtx = newExecutionContext(nil)
-	} 
+	}
 
 	if ctx == nil {
 		ctx = &Context{}
