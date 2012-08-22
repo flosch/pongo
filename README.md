@@ -2,7 +2,7 @@ GoTemplate is a template engine which implements a [Django-template](https://doc
 
 Please have a look at the test (`template_test.go`) for examples.
 
-# A tiny example
+# A tiny example (template string)
 
 	in := "Hello {{ name|capitalize }}!"
 	tpl, err := template.FromString("mytemplatetest", &in, nil)
@@ -14,6 +14,30 @@ Please have a look at the test (`template_test.go`) for examples.
 		panic(err)
 	}
 	fmt.Println(*out) // Output: Hello Florian!
+
+# Example server-usage (template file)
+
+	package main
+	
+	import (
+		"github.com/flosch/GoTemplate"
+		"net/http"
+	)
+	
+	var tplExample = template.Must(template.FromFile("example.html", nil))
+	
+	func examplePage(w http.ResponseWriter, r *http.Request) {
+		err := tplExample.ExecuteRW(w, nil)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+	
+	func main() {
+		http.HandleFunc("/", examplePage)
+		http.ListenAndServe(":8080", nil)
+	}
 
 # Documentation
 
