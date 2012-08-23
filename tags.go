@@ -8,8 +8,8 @@ import (
 )
 
 type TagHandler struct {
-	Execute func(*string, *Template, *executionContext, *Context) (*string, error)
-	Ignore  func(*string, *Template, *executionContext) error
+	Execute func(*string, *executionContext, *Context) (*string, error)
+	Ignore  func(*string, *executionContext) error
 }
 
 var Tags = map[string]*TagHandler{
@@ -241,8 +241,8 @@ func evalCondArg(ctx *Context, in *string) (interface{}, error) {
 	panic("unreachable")
 }
 
-func tagIf(args *string, tpl *Template, execCtx *executionContext, ctx *Context) (*string, error) {
-	renderedStrings := make([]string, 0, len(tpl.nodes)-execCtx.node_pos)
+func tagIf(args *string, execCtx *executionContext, ctx *Context) (*string, error) {
+	renderedStrings := make([]string, 0, len(execCtx.template.nodes)-execCtx.node_pos)
 
 	*args = strings.TrimSpace(*args)
 	if len(*args) == 0 {
@@ -262,26 +262,26 @@ func tagIf(args *string, tpl *Template, execCtx *executionContext, ctx *Context)
 	}
 
 	if res_bool {
-		node, str_items, err := tpl.executeUntilAnyTagNode(ctx, execCtx, "else", "endif")
+		node, str_items, err := execCtx.executeUntilAnyTagNode(ctx, "else", "endif")
 		if err != nil {
 			return nil, err
 		}
 		renderedStrings = append(renderedStrings, (*str_items)...)
 
 		if node.tagname == "else" { // There's an else-block, skip it
-			_, err := tpl.ignoreUntilAnyTagNode(execCtx, "endif")
+			_, err := execCtx.ignoreUntilAnyTagNode("endif")
 			if err != nil {
 				return nil, err
 			}
 		}
 	} else {
-		node, err := tpl.ignoreUntilAnyTagNode(execCtx, "else", "endif")
+		node, err := execCtx.ignoreUntilAnyTagNode("else", "endif")
 		if err != nil {
 			return nil, err
 		}
 
 		if node.tagname == "else" {
-			_, str_items, err := tpl.executeUntilAnyTagNode(ctx, execCtx, "endif")
+			_, str_items, err := execCtx.executeUntilAnyTagNode(ctx, "endif")
 			if err != nil {
 				return nil, err
 			}
@@ -293,13 +293,13 @@ func tagIf(args *string, tpl *Template, execCtx *executionContext, ctx *Context)
 	return &outputString, nil
 }
 
-func tagIfIgnore(args *string, tpl *Template, execCtx *executionContext) error {
-	tn, err := tpl.ignoreUntilAnyTagNode(execCtx, "else", "endif")
+func tagIfIgnore(args *string, execCtx *executionContext) error {
+	tn, err := execCtx.ignoreUntilAnyTagNode("else", "endif")
 	if err != nil {
 		return err
 	}
 	if tn.tagname == "else" {
-		_, err := tpl.ignoreUntilAnyTagNode(execCtx, "endif")
+		_, err := execCtx.ignoreUntilAnyTagNode("endif")
 		if err != nil {
 			return err
 		}
@@ -316,7 +316,7 @@ type forContext struct {
 	Last     bool
 }
 
-func tagFor(args *string, tpl *Template, execCtx *executionContext, ctx *Context) (*string, error) {
+func tagFor(args *string, execCtx *executionContext, ctx *Context) (*string, error) {
 	var renderedStrings []string
 
 	// TODO: Replace strings.Contains by a more intelligent function (see comment above as well)
@@ -343,7 +343,7 @@ func tagFor(args *string, tpl *Template, execCtx *executionContext, ctx *Context
 
 			if rv.Len() > 0 {
 				// Prepare renderedStrings
-				renderedStrings = make([]string, 0, (len(tpl.nodes)-execCtx.node_pos)*rv.Len())
+				renderedStrings = make([]string, 0, (len(execCtx.template.nodes)-execCtx.node_pos)*rv.Len())
 
 				// If map, get all keys
 				var map_items []reflect.Value
@@ -415,13 +415,13 @@ func tagFor(args *string, tpl *Template, execCtx *executionContext, ctx *Context
 					(*ctx)["forcounter1"] = i + 1
 
 					// Execute for-body
-					tn, str_items, err := tpl.executeUntilAnyTagNode(ctx, execCtx, "else", "endfor")
+					tn, str_items, err := execCtx.executeUntilAnyTagNode(ctx, "else", "endfor")
 					if err != nil {
 						return nil, err
 					}
 					if tn.tagname == "else" {
 						// Skip else since it's not relevant
-						tpl.ignoreUntilAnyTagNode(execCtx, "endfor")
+						execCtx.ignoreUntilAnyTagNode("endfor")
 					}
 					renderedStrings = append(renderedStrings, (*str_items)...)
 
@@ -448,13 +448,13 @@ func tagFor(args *string, tpl *Template, execCtx *executionContext, ctx *Context
 				}
 			} else {
 				// Zero executions, directly execute else or go to endfor
-				tn, err := tpl.ignoreUntilAnyTagNode(execCtx, "else", "endfor")
+				tn, err := execCtx.ignoreUntilAnyTagNode("else", "endfor")
 				if err != nil {
 					return nil, err
 				}
 				if tn.tagname == "else" {
 					// Execute empty block
-					_, str_items, err := tpl.executeUntilAnyTagNode(ctx, execCtx, "endfor")
+					_, str_items, err := execCtx.executeUntilAnyTagNode(ctx, "endfor")
 					if err != nil {
 						return nil, err
 					}
@@ -479,7 +479,7 @@ func tagFor(args *string, tpl *Template, execCtx *executionContext, ctx *Context
 		if rng, is_int := value.(int); is_int {
 			if rng > 0 {
 				// Prepare renderedStrings
-				renderedStrings = make([]string, 0, (len(tpl.nodes)-execCtx.node_pos)*rng)
+				renderedStrings = make([]string, 0, (len(execCtx.template.nodes)-execCtx.node_pos)*rng)
 
 				// Create for-context
 				forCtx := &forContext{
@@ -526,13 +526,13 @@ func tagFor(args *string, tpl *Template, execCtx *executionContext, ctx *Context
 					(*ctx)["forcounter1"] = i + 1
 
 					// Execute for-body
-					tn, str_items, err := tpl.executeUntilAnyTagNode(ctx, execCtx, "else", "endfor")
+					tn, str_items, err := execCtx.executeUntilAnyTagNode(ctx, "else", "endfor")
 					if err != nil {
 						return nil, err
 					}
 					if tn.tagname == "else" {
 						// Skip else since it's not relevant
-						tpl.ignoreUntilAnyTagNode(execCtx, "endfor")
+						execCtx.ignoreUntilAnyTagNode("endfor")
 					}
 					renderedStrings = append(renderedStrings, (*str_items)...)
 
@@ -558,13 +558,13 @@ func tagFor(args *string, tpl *Template, execCtx *executionContext, ctx *Context
 				}
 			} else {
 				// Zero executions, directly execute else or go to endfor
-				tn, err := tpl.ignoreUntilAnyTagNode(execCtx, "else", "endfor")
+				tn, err := execCtx.ignoreUntilAnyTagNode("else", "endfor")
 				if err != nil {
 					return nil, err
 				}
 				if tn.tagname == "else" {
 					// Execute empty block
-					_, str_items, err := tpl.executeUntilAnyTagNode(ctx, execCtx, "endfor")
+					_, str_items, err := execCtx.executeUntilAnyTagNode(ctx, "endfor")
 					if err != nil {
 						return nil, err
 					}
@@ -580,13 +580,13 @@ func tagFor(args *string, tpl *Template, execCtx *executionContext, ctx *Context
 	return &outputString, nil
 }
 
-func tagForIgnore(args *string, tpl *Template, execCtx *executionContext) error {
-	tn, err := tpl.ignoreUntilAnyTagNode(execCtx, "else", "endfor")
+func tagForIgnore(args *string, execCtx *executionContext) error {
+	tn, err := execCtx.ignoreUntilAnyTagNode("else", "endfor")
 	if err != nil {
 		return err
 	}
 	if tn.tagname == "else" {
-		_, err := tpl.ignoreUntilAnyTagNode(execCtx, "endfor")
+		_, err := execCtx.ignoreUntilAnyTagNode("endfor")
 		if err != nil {
 			return err
 		}
@@ -594,8 +594,8 @@ func tagForIgnore(args *string, tpl *Template, execCtx *executionContext) error 
 	return nil
 }
 
-func tagBlock(args *string, tpl *Template, execCtx *executionContext, ctx *Context) (*string, error) {
-	renderedStrings := make([]string, 0, len(tpl.nodes)-execCtx.node_pos)
+func tagBlock(args *string, execCtx *executionContext, ctx *Context) (*string, error) {
+	renderedStrings := make([]string, 0, len(execCtx.template.nodes)-execCtx.node_pos)
 
 	// TODO: Prevent nested block-tags
 
@@ -609,7 +609,7 @@ func tagBlock(args *string, tpl *Template, execCtx *executionContext, ctx *Conte
 			panic("Internal error; internal block string is NOT a string. Please report this issue.")
 		}
 		// Now we have to ignore the default block
-		_, err := tpl.ignoreUntilAnyTagNode(execCtx, "endblock")
+		_, err := execCtx.ignoreUntilAnyTagNode("endblock")
 		if err != nil {
 			return nil, err
 		}
@@ -619,7 +619,7 @@ func tagBlock(args *string, tpl *Template, execCtx *executionContext, ctx *Conte
 	}
 
 	// Execute default nodes
-	_, str_items, err := tpl.executeUntilAnyTagNode(ctx, execCtx, "endblock")
+	_, str_items, err := execCtx.executeUntilAnyTagNode(ctx, "endblock")
 	if err != nil {
 		return nil, err
 	}
@@ -629,11 +629,11 @@ func tagBlock(args *string, tpl *Template, execCtx *executionContext, ctx *Conte
 	return &outputString, nil
 }
 
-func tagTrim(args *string, tpl *Template, execCtx *executionContext, ctx *Context) (*string, error) {
-	renderedStrings := make([]string, 0, len(tpl.nodes)-execCtx.node_pos)
+func tagTrim(args *string, execCtx *executionContext, ctx *Context) (*string, error) {
+	renderedStrings := make([]string, 0, len(execCtx.template.nodes)-execCtx.node_pos)
 
 	// Execute content
-	_, str_items, err := tpl.executeUntilAnyTagNode(ctx, execCtx, "endtrim")
+	_, str_items, err := execCtx.executeUntilAnyTagNode(ctx, "endtrim")
 	if err != nil {
 		return nil, err
 	}
@@ -643,19 +643,19 @@ func tagTrim(args *string, tpl *Template, execCtx *executionContext, ctx *Contex
 	return &outputString, nil
 }
 
-func tagTrimIgnore(args *string, tpl *Template, execCtx *executionContext) error {
-	_, err := tpl.ignoreUntilAnyTagNode(execCtx, "endtrim")
+func tagTrimIgnore(args *string, execCtx *executionContext) error {
+	_, err := execCtx.ignoreUntilAnyTagNode("endtrim")
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func tagRemove(args *string, tpl *Template, execCtx *executionContext, ctx *Context) (*string, error) {
-	renderedStrings := make([]string, 0, len(tpl.nodes)-execCtx.node_pos)
+func tagRemove(args *string, execCtx *executionContext, ctx *Context) (*string, error) {
+	renderedStrings := make([]string, 0, len(execCtx.template.nodes)-execCtx.node_pos)
 
 	// Execute content
-	_, str_items, err := tpl.executeUntilAnyTagNode(ctx, execCtx, "endremove")
+	_, str_items, err := execCtx.executeUntilAnyTagNode(ctx, "endremove")
 	if err != nil {
 		return nil, err
 	}
@@ -685,15 +685,15 @@ func tagRemove(args *string, tpl *Template, execCtx *executionContext, ctx *Cont
 	return &outputString, nil
 }
 
-func tagRemoveIgnore(args *string, tpl *Template, execCtx *executionContext) error {
-	_, err := tpl.ignoreUntilAnyTagNode(execCtx, "endremove")
+func tagRemoveIgnore(args *string, execCtx *executionContext) error {
+	_, err := execCtx.ignoreUntilAnyTagNode("endremove")
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func tagExtends(args *string, tpl *Template, execCtx *executionContext, ctx *Context) (*string, error) {
+func tagExtends(args *string, execCtx *executionContext, ctx *Context) (*string, error) {
 	// Extends executes the base template and passes the blocks via Context 
 
 	// Example: {% extends "base.html" abc=<expr> ghi=<expr> ... %}
@@ -712,30 +712,30 @@ func tagExtends(args *string, tpl *Template, execCtx *executionContext, ctx *Con
 	//raw_context := _args[1:] // TODO
 
 	// Create new template
-	if tpl.locator == nil {
+	if execCtx.template.locator == nil {
 		panic(fmt.Sprintf("Please provide a template locator to lookup template '%v'.", *name))
 	}
 
-	base_tpl_content, err := tpl.locator(name)
+	base_tpl_content, err := execCtx.template.locator(name)
 	if err != nil {
 		return nil, err
 	}
 
 	// TODO: Do the pre-rendering (FromString) in the parent's FromString(), just do the execution here.
-	base_tpl, err := FromString(*name, base_tpl_content, tpl.locator)
+	base_tpl, err := FromString(*name, base_tpl_content, execCtx.template.locator)
 	if err != nil {
 		return nil, err
 	}
 
 	// Execute every 'block' and store it's result as "block_%s" in the internal Context
 	for {
-		node, err := tpl.ignoreUntilAnyTagNode(execCtx, "block")
+		node, err := execCtx.ignoreUntilAnyTagNode("block")
 		if err != nil {
 			// No block left
 			break
 		}
 		blockname := node.tagargs
-		node, str_items, err := tpl.executeUntilAnyTagNode(ctx, execCtx, "endblock")
+		node, str_items, err := execCtx.executeUntilAnyTagNode(ctx, "endblock")
 		if err != nil {
 			return nil, err
 		}
@@ -744,10 +744,10 @@ func tagExtends(args *string, tpl *Template, execCtx *executionContext, ctx *Con
 	}
 
 	// Share our internal context with the base template
-	return base_tpl.execute(ctx, newExecutionContext(&execCtx.internal_context))
+	return base_tpl.execute(ctx, newExecutionContext(base_tpl, &execCtx.internal_context))
 }
 
-func tagInclude(args *string, tpl *Template, execCtx *executionContext, ctx *Context) (*string, error) {
+func tagInclude(args *string, execCtx *executionContext, ctx *Context) (*string, error) {
 	// Includes a template and executes it 
 
 	// Example: {% include "base.html" abc=<expr> ghi=<expr> ... %}
@@ -766,17 +766,17 @@ func tagInclude(args *string, tpl *Template, execCtx *executionContext, ctx *Con
 	//raw_context := _args[1:]  // TODO
 
 	// Create new template
-	if tpl.locator == nil {
+	if execCtx.template.locator == nil {
 		panic(fmt.Sprintf("Please provide a template locator to lookup template '%v'.", *name))
 	}
 
-	base_tpl_content, err := tpl.locator(name)
+	base_tpl_content, err := execCtx.template.locator(name)
 	if err != nil {
 		return nil, err
 	}
 
 	// TODO: Do the pre-rendering (FromString) in the parent's FromString(), just do the execution here. 
-	base_tpl, err := FromString(*name, base_tpl_content, tpl.locator)
+	base_tpl, err := FromString(*name, base_tpl_content, execCtx.template.locator)
 	if err != nil {
 		return nil, err
 	}

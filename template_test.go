@@ -487,6 +487,10 @@ func TestFromFile(t *testing.T) {
 	}
 }
 
+// TODO:
+// - Add Must() tests
+// - Add thread-safety tests.
+
 func ExampleParseArgs() {
 	in := `15029582`
 	r := splitArgs(&in, ",")
