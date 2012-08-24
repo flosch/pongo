@@ -57,10 +57,10 @@ var (
 )
 
 type test struct {
-	tpl    string
-	output string
-	ctx    Context
-	err    string
+	tpl    string  // The template to execute
+	output string  // Expected output
+	ctx    Context // Context for execution (can be nil) 
+	err    string  // Expected error-message (part of it); if it contains "FUTURE" the test will be omitted.
 }
 
 var standard_tests = []test{
@@ -175,6 +175,18 @@ var filter_tests = []test{
 	{"{{ \"<script>...</script>\" }}", "&lt;script&gt;...&lt;/script&gt;", nil, ""},                // auto-safe
 	{"{{ \"<script>...</script>\"|unsafe }}", "<script>...</script>", nil, ""},                     // unsafe
 	{"{{ \"<script>...</script>\"|safe|safe|safe }}", "&lt;script&gt;...&lt;/script&gt;", nil, ""}, // explicit multiple safes
+
+	// Context-sensitive safety
+	{"<a title='{{ \"Yep: This is <strong>cool</strong>!\" }}'>", "", nil, "FUTURE"},
+	{"<a href='/{{ \"Yep: This is <strong>cool</strong>!\" }}'>", "", nil, "FUTURE"},
+	{"<a href='?arg={{ \"Yep: This is <strong>cool</strong>!\" }}'>", "", nil, "FUTURE"},
+	{"<a href='?{{ \"Yep: This is <strong>cool</strong>!\" }}'>", "", nil, "FUTURE"},
+	{"<a href='testfn({{ \"Yep: This is <strong>cool</strong>!\" }});'>", "", nil, "FUTURE"},
+	{"<a href='testfn({{ x }});'>", "", Context{"x": "Oh yeah, a string."}, "FUTURE"},
+	{"<a href='testfn({{ 123591 }});'>", "", nil, "FUTURE"},
+	{"<script>var foo = '{{ \"Yep: This is <strong>cool</strong>!\" }}';</script>", "", nil, "FUTURE"},
+	{"<a href='{{ \"Yep: This is <strong>cool</strong>!\" }}'>", "", nil, "FUTURE"},
+	{"<a href='{{ \"Yep: This is <strong>cool</strong>!\"|unsafe }}'>", "<a href='Yep: This is <strong>cool</strong>'>", nil, "FUTURE"},
 
 	// Default
 	{"{{ \"\"|default:\"yes\" }}", "yes", nil, ""},
@@ -415,8 +427,15 @@ func TestFromString(t *testing.T) {
 	// Provide custom tag
 	Tags["set"] = nil // TODO
 
+	future_omitted := 0
+
 	for name, testsuite := range string_tests {
 		for _, test := range testsuite {
+			if test.err == "FUTURE" {
+				future_omitted++
+				continue
+			}
+		
 			out, err := execTpl(&test)
 			if err != nil {
 				if test.err != "" {
@@ -439,6 +458,10 @@ func TestFromString(t *testing.T) {
 				continue
 			}
 		}
+	}
+	
+	if future_omitted > 0 {
+		t.Logf("%d tests omitted, because they are flagged as FUTURE.", future_omitted)
 	}
 }
 
