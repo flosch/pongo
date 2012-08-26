@@ -333,10 +333,6 @@ func (e *expr) parse() error {
 		_args := strings.SplitN(root, ":", 2)
 		root = _args[0]
 
-		// IMPORTANT TODO: refactor and create helper function "parseArgs", in particular
-		// to respect args with commas {{ mylist|join:", " }} 
-		// same at filters, tags, etc. (see their respective comments)
-		//_split_args := strings.Split(_args[1], ",")
 		_split_args := *splitArgs(&_args[1], ",")
 
 		args := make([]reflect.Value, 0, len(_split_args))
@@ -369,7 +365,7 @@ func (e *expr) parse() error {
 			// split filtername and args
 			_args := strings.SplitN(part, ":", 2)
 			filtername = _args[0]
-			_split_args := *splitArgs(&_args[1], ",") // strings.Split(_args[1], ",") // IMPORTANT TODO: See above related to argparsing.
+			_split_args := *splitArgs(&_args[1], ",")
 
 			// prepare args
 			args = make([]interface{}, 0, len(_split_args))

@@ -166,7 +166,7 @@ var compMap = map[string]compareFunc{
 func containsAnyOperator(where string, ops ...string) bool {
 	// TODO: Respect strings which contains operators/comparables. :D I've to 
 	// develop a more intelligent way of "strings.Contains" and have to
-	// replace this function. Same goes for the expressions (see comment in expr.go)
+	// replace this function.
 	for _, op := range ops {
 		if strings.Contains(where, op) {
 			return true
@@ -181,7 +181,7 @@ func evalOperation(where string, ctx *Context, ops ...string) (bool, error) {
 
 	// TODO: Respect strings which contains operators/comparables. :D I've to 
 	// develop a more intelligent way of "strings.Contains" and have to
-	// replace this function. Same goes for the expressions (see comment in expr.go)
+	// replace this function.
 	for _, _op := range ops {
 		if strings.Contains(where, _op) {
 			op = _op
