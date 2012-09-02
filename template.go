@@ -200,17 +200,17 @@ func processContent(tpl *Template) stateFunc {
 		case '#':
 			tpl.fastForward(2) // skip {#
 			addContentNode(tpl)
-			tpl.start = tpl.pos // y??????
+			tpl.start = tpl.pos
 			return processComment
 		case '%':
 			tpl.fastForward(2) // skip {%
 			addContentNode(tpl)
-			tpl.start = tpl.pos // y??????
+			tpl.start = tpl.pos
 			return processTag
 		case '{':
 			tpl.fastForward(2) // skip {{
 			addContentNode(tpl)
-			tpl.start = tpl.pos // y??????
+			tpl.start = tpl.pos
 			return processFilter
 		default:
 			// Ignore this, because template could look like:

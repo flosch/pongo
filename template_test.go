@@ -67,6 +67,7 @@ var standard_tests = []test{
 	// Plain text
 	{"      ", "      ", nil, ""},
 	{"Hallo !§$%&/()?==??&&", "Hallo !§$%&/()?==??&&", nil, ""},
+	{"<script>if (true) { alert('yop'); }</script>", "<script>if (true) { alert('yop'); }</script>", nil, ""}, // Bug report #1
 	{`... Line 1
 	... Line 2
 	... Line 3
@@ -86,7 +87,6 @@ var standard_tests = []test{
 
 	// Trivial errors
 	{"", "", nil, "Template has no content"},
-	{"<script>if (true) { alert('yop'); }</script>", "<script>if (true) { alert('yop'); }</script>", nil, ""}, // Bug report #1
 	{"{{ }}", "", nil, "Identifier is an empty string"},
 
 	// Strings
