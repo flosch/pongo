@@ -215,7 +215,7 @@ func processContent(tpl *Template) stateFunc {
 		default:
 			// Ignore this, because template could look like:
 			// <script>if (true) { ... } </script>
-			// Bug issue 1
+			// See issue #1
 		}
 	}
 
