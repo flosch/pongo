@@ -196,24 +196,26 @@ func processContent(tpl *Template) stateFunc {
 			return nil
 		}
 
-		tpl.fastForward(2) // skip next 2 chars {x
-
 		switch nc {
 		case '#':
+			tpl.fastForward(2) // skip {#
 			addContentNode(tpl)
 			tpl.start = tpl.pos // y??????
 			return processComment
 		case '%':
+			tpl.fastForward(2) // skip {%
 			addContentNode(tpl)
 			tpl.start = tpl.pos // y??????
 			return processTag
 		case '{':
+			tpl.fastForward(2) // skip {{
 			addContentNode(tpl)
 			tpl.start = tpl.pos // y??????
 			return processFilter
 		default:
-			tpl.parseErr = fmt.Sprintf("Unknown open command ('%c').", nc)
-			return nil
+			// Ignore this, because template could look like:
+			// <script>if (true) { ... } </script>
+			// Bug issue 1
 		}
 	}
 
@@ -512,7 +514,7 @@ func (tpl *Template) execute(ctx *Context, execCtx *executionContext) (*string, 
 	if ctx == nil {
 		ctx = &Context{}
 	}
-	
+
 	return execCtx.execute(ctx)
 }
 

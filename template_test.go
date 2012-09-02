@@ -86,6 +86,7 @@ var standard_tests = []test{
 
 	// Trivial errors
 	{"", "", nil, "Template has no content"},
+	{"<script>if (true) { alert('yop'); }</script>", "<script>if (true) { alert('yop'); }</script>", nil, ""}, // Bug report #1
 	{"{{ }}", "", nil, "Identifier is an empty string"},
 
 	// Strings
@@ -435,7 +436,7 @@ func TestFromString(t *testing.T) {
 				future_omitted++
 				continue
 			}
-		
+
 			out, err := execTpl(&test)
 			if err != nil {
 				if test.err != "" {
@@ -459,7 +460,7 @@ func TestFromString(t *testing.T) {
 			}
 		}
 	}
-	
+
 	if future_omitted > 0 {
 		t.Logf("%d tests omitted, because they are flagged as FUTURE.", future_omitted)
 	}
