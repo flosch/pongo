@@ -346,15 +346,30 @@ var tags_tests = []test{
 
 	// Block/Extends
 	{"{% extends \"base\" %}  This doesn't show up {% block name %}Florian{% endblock %}", "Hello Florian!", nil, ""},
-	{"{% extends tpl_name %}  This doesn't show up {% block name %}Florian{% endblock %}", "Hello Florian!", Context{"tpl_name": "base"}, ""},
+	{"{% extends foobar %}  This doesn't show up {% block name %}Florian{% endblock %}", "Hello Florian!", Context{"foobar": "base"}, ""},
+	{"{% extends foobar %}  This doesn't show up {% block name %}Florian{% endblock %}", "Hello Florian!", nil, "Please provide a propper template filename"},
 	{"{% extends \"base\" %}  This doesn't show up", "Hello Josh!", nil, ""},
 	{"{% extends \"base2\" %}  This doesn't show up {% block name %}Florian{% endblock %}", "", nil, "Could not find the template"},
+
+	// Static extend (template will be pre-cached at startup and not dynamically rendered)
+	// This improves speed significantly
+	{"{% extends static \"base\" %}  This doesn't show up {% block name %}Florian{% endblock %}", "Hello Florian!", nil, ""},
+	{"{% extends static foobar %}  This doesn't show up {% block name %}Florian{% endblock %}", "Hello Florian!", nil, "Please provide a propper template filename"},
+	{"{% extends static \"base\" %}  This doesn't show up", "Hello Josh!", nil, ""},
+	{"{% extends static \"base2\" %}  This doesn't show up {% block name %}Florian{% endblock %}", "", nil, "Could not find the template"},
 
 	// Include
 	{"{% include \"greetings\" %} How are you today?", "Hello Flo! How are you today?", Context{"name": "flo"}, ""},
 	{"{% include tpl_name %} How are you today?", "Hello Flo! How are you today?", Context{"name": "flo", "tpl_name": "greetings"}, ""},
 	{"{% include \"foobar\" %} This and that", "", nil, "Could not find the template"},
 	{"{% include \"greetings_with_errors\" %} This and that", "", nil, "[Parsing error: greetings_with_errors] [Line 1, Column 27] Filter 'notexistent' not found"},
+	
+	// Static include (see comments for static extend above)
+	{"{% include static \"greetings\" %} How are you today?", "Hello Flo! How are you today?", Context{"name": "flo"}, ""},
+	{"{% include static tpl_name %} How are you today?", "Hello Flo! How are you today?", Context{"name": "flo", "tpl_name": "greetings"}, "Please provide a propper template filename"},
+	{"{% include static tpl_name %} How are you today?", "Hello Flo! How are you today?", nil, "Please provide a propper template filename"},
+	{"{% include static \"foobar\" %} This and that", "", nil, "Could not find the template"},
+	{"{% include static \"greetings_with_errors\" %} This and that", "", nil, "[Parsing error: greetings_with_errors] [Line 1, Column 27] Filter 'notexistent' not found"},
 
 	// Custom tag.. 
 	// TODO
@@ -370,7 +385,11 @@ var file_tests = []test{
 	// General
 	{"template_examples/index1.html", "", Context{"basename": "generic/base-notexistent.html"}, "Could not find the template"},
 	{"template_examples/index1.html", "<html><head><title>Myindex</title></head><body></body></html>", Context{"basename": "generic/base1.html"}, ""},
-	{"template_examples/index1.html", "<html><head><title>Myindex</title></head><body></body></html>", nil, "Could not find the template"},
+	{"template_examples/index1.html", "<html><head><title>Myindex</title></head><body></body></html>", nil, "Please provide a propper template filename"},
+
+	// Static template caching
+	{"template_examples/index2.html", "<html><head><title>Myindex</title></head><body></body></html>", nil, ""},
+	{"template_examples/index3.html", "", nil, "Could not find the template"},
 }
 
 var base1 = "Hello {% block name %}Josh{% endblock %}!"
@@ -480,7 +499,16 @@ func TestFromFile(t *testing.T) {
 
 		tpl, err := FromFile(name, nil)
 		if err != nil {
-			t.Fatalf("Template test file not found: %s", name)
+			if test.err != "" {
+				if strings.Contains(strings.ToLower(err.Error()), strings.ToLower(test.err)) {
+					// Err found which is expected
+					continue
+				}
+				t.Errorf("File-Test '%s' FAILED (was expecting '%s' in error msg): %v", test, test.err, err)
+				continue
+			}
+			t.Errorf("File-Test '%s' FAILED: %v", test, err)
+			continue
 		}
 		var out *string
 		if test.ctx != nil {
@@ -494,18 +522,18 @@ func TestFromFile(t *testing.T) {
 					// Err found which is expected
 					continue
 				}
-				t.Errorf("FileTest '%s' FAILED (was expecting '%s' in error msg): %v", test.tpl, test.err, err)
+				t.Errorf("File-Test '%s' FAILED (was expecting '%s' in error msg): %v", test, test.err, err)
 				continue
 			}
-			t.Errorf("File-Test '%s' FAILED: %v", test.tpl, err)
+			t.Errorf("File-Test '%s' FAILED: %v", test, err)
 			continue
 		}
 		if test.err != "" {
-			t.Errorf("File-Test '%s' SUCCEEDED, but FAIL ('%s' in error msg) was EXPECTED; got output: '%s'", test.tpl, test.err, *out)
+			t.Errorf("File-Test '%s' SUCCEEDED, but FAIL ('%s' in error msg) was EXPECTED; got output: '%s'", test, test.err, *out)
 			continue
 		}
 		if *out != test.output {
-			t.Errorf("File-Test '%s' FAILED; got='%s' should='%s'", test.tpl, *out, test.output)
+			t.Errorf("File-Test '%s' FAILED; got='%s' should='%s'", test, *out, test.output)
 			continue
 		}
 	}

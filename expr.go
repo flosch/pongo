@@ -404,6 +404,8 @@ func (e *expr) String() string {
 }
 
 func (e *expr) evalValue(ctx *Context) (interface{}, error) {
+	// Check ctx for nil
+
 	// Execute expression
 	var value interface{} = e.root
 

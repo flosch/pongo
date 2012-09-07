@@ -80,6 +80,9 @@ type Template struct {
 	autosafe bool
 	nodes    []node
 	locator  templateLocator
+
+	// Static content (doesn't change with execution)
+	cache map[string]interface{}
 }
 
 type stateFunc func(*Template) stateFunc
@@ -328,6 +331,14 @@ func addTagNode(tpl *Template) error {
 	tpl.start = tpl.pos
 	tpl.length = 0
 	tpl.nodes = append(tpl.nodes, tn)
+
+	if tn.taghandler != nil && tn.taghandler.Prepare != nil {
+		// OK, let's prepare this tag (e. g. pre-cache templates to extend) 
+		if err := tn.taghandler.Prepare(tn, tpl); err != nil {
+			return errors.New(fmt.Sprintf("Error during preparation of tag '%s': %s", tagname, err))
+		}
+	}
+
 	return nil
 }
 
@@ -449,6 +460,7 @@ func newTemplate(name string, tplstr *string, locator templateLocator) (*Templat
 		nodes:    make([]node, 0, 250),
 		autosafe: true,
 		locator:  locator,
+		cache:    make(map[string]interface{}),
 	}
 
 	return tpl, nil

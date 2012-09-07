@@ -10,6 +10,7 @@ import (
 type TagHandler struct {
 	Execute func(*string, *executionContext, *Context) (*string, error)
 	Ignore  func(*string, *executionContext) error
+	Prepare func(*tagNode, *Template) error
 }
 
 var Tags = map[string]*TagHandler{
@@ -20,8 +21,8 @@ var Tags = map[string]*TagHandler{
 	"endfor":    nil,
 	"block":     &TagHandler{Execute: tagBlock}, // Needs no Ignore-function because nested-blocks aren't allowed
 	"endblock":  nil,
-	"extends":   &TagHandler{Execute: tagExtends},
-	"include":   &TagHandler{Execute: tagInclude},
+	"extends":   &TagHandler{Execute: tagExtends, Prepare: tagExtendsPrepare},
+	"include":   &TagHandler{Execute: tagInclude, Prepare: tagIncludePrepare},
 	"trim":      &TagHandler{Execute: tagTrim, Ignore: tagTrimIgnore},
 	"endtrim":   nil,
 	"remove":    &TagHandler{Execute: tagRemove, Ignore: tagRemoveIgnore},
@@ -693,11 +694,14 @@ func tagRemoveIgnore(args *string, execCtx *executionContext) error {
 	return nil
 }
 
-func tagExtends(args *string, execCtx *executionContext, ctx *Context) (*string, error) {
-	// Extends executes the base template and passes the blocks via Context 
+func createBaseTplForExtendInclude(args string, tpl *Template, ctx *Context) (*Template, error) {
+	// Skip an optional static flag at the beginning
+	if strings.HasPrefix(args, "static ") {
+		args = args[len("static "):]
+	}
 
 	// Example: {% extends "base.html" abc=<expr> ghi=<expr> ... %}
-	_args := strings.Split(*args, " ")
+	_args := strings.Split(args, " ")
 	if len(_args) <= 0 {
 		return nil, errors.New("Please provide at least a filename to extend from.")
 	}
@@ -705,26 +709,67 @@ func tagExtends(args *string, execCtx *executionContext, ctx *Context) (*string,
 	if err != nil {
 		return nil, err
 	}
-	name, err := e.evalString(ctx)
+	name, err := e.evalString(ctx) // TODO: nil? does it work?
 	if err != nil {
 		return nil, err
 	}
 	//raw_context := _args[1:] // TODO
+	if strings.TrimSpace(*name) == "" {
+		return nil, errors.New("Please provide a propper template filename (empty or an expression evaluating to an empty string is not allowed).")
+	}
 
 	// Create new template
-	if execCtx.template.locator == nil {
+	if tpl.locator == nil {
 		panic(fmt.Sprintf("Please provide a template locator to lookup template '%v'.", *name))
 	}
 
-	base_tpl_content, err := execCtx.template.locator(name)
+	base_tpl_content, err := tpl.locator(name)
 	if err != nil {
 		return nil, err
 	}
 
 	// TODO: Do the pre-rendering (FromString) in the parent's FromString(), just do the execution here.
-	base_tpl, err := FromString(*name, base_tpl_content, execCtx.template.locator)
+	base_tpl, err := FromString(*name, base_tpl_content, tpl.locator)
 	if err != nil {
 		return nil, err
+	}
+
+	return base_tpl, nil
+}
+
+func tagExtendsPrepare(tn *tagNode, tpl *Template) error {
+	// Only prepare, if args starts with "static "
+	if !strings.HasPrefix(tn.tagargs, "static ") {
+		return nil
+	}
+
+	// In preparation-phase we have no Context, so create an empty one.
+	base_tpl, err := createBaseTplForExtendInclude(tn.tagargs, tpl, &Context{})
+	if err != nil {
+		return err
+	}
+
+	// Save base_tpl
+	tpl.cache[fmt.Sprintf("extends_%s", tn.tagargs)] = base_tpl
+
+	return nil
+}
+
+func tagExtends(args *string, execCtx *executionContext, ctx *Context) (*string, error) {
+	// Extends executes the base template and passes the blocks via Context 
+
+	// Example: {% extends "base.html" abc=<expr> ghi=<expr> ... %}
+	var base_tpl *Template
+	_base_tpl, has_precached := execCtx.template.cache[fmt.Sprintf("extends_%s", *args)]
+	if has_precached {
+		base_tpl = _base_tpl.(*Template)
+	} else {
+		// Get dynamic
+		_base_tpl, err := createBaseTplForExtendInclude(*args, execCtx.template, ctx)
+		if err != nil {
+			return nil, err
+		}
+		base_tpl = _base_tpl
 	}
 
 	// Execute every 'block' and store it's result as "block_%s" in the internal Context
@@ -747,38 +792,38 @@ func tagExtends(args *string, execCtx *executionContext, ctx *Context) (*string,
 	return base_tpl.execute(ctx, newExecutionContext(base_tpl, &execCtx.internal_context))
 }
 
+func tagIncludePrepare(tn *tagNode, tpl *Template) error {
+	// Only prepare, if args starts with "static "
+	if !strings.HasPrefix(tn.tagargs, "static ") {
+		return nil
+	}
+
+	// In preparation-phase we have no Context, so create an empty one.
+	base_tpl, err := createBaseTplForExtendInclude(tn.tagargs, tpl, &Context{})
+	if err != nil {
+		return err
+	}
+
+	// Save base_tpl
+	tpl.cache[fmt.Sprintf("include_%s", tn.tagargs)] = base_tpl
+
+	return nil
+}
+
 func tagInclude(args *string, execCtx *executionContext, ctx *Context) (*string, error) {
 	// Includes a template and executes it 
 
-	// Example: {% include "base.html" abc=<expr> ghi=<expr> ... %}
-	_args := strings.Split(*args, " ")
-	if len(_args) <= 0 {
-		return nil, errors.New("Please provide at least a filename to extend from.")
-	}
-	e, err := newExpr(&_args[0])
-	if err != nil {
-		return nil, err
-	}
-	name, err := e.evalString(ctx)
-	if err != nil {
-		return nil, err
-	}
-	//raw_context := _args[1:]  // TODO
-
-	// Create new template
-	if execCtx.template.locator == nil {
-		panic(fmt.Sprintf("Please provide a template locator to lookup template '%v'.", *name))
-	}
-
-	base_tpl_content, err := execCtx.template.locator(name)
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO: Do the pre-rendering (FromString) in the parent's FromString(), just do the execution here. 
-	base_tpl, err := FromString(*name, base_tpl_content, execCtx.template.locator)
-	if err != nil {
-		return nil, err
+	var base_tpl *Template
+	_base_tpl, has_precached := execCtx.template.cache[fmt.Sprintf("include_%s", *args)]
+	if has_precached {
+		base_tpl = _base_tpl.(*Template)
+	} else {
+		// Get dynamic
+		_base_tpl, err := createBaseTplForExtendInclude(*args, execCtx.template, ctx)
+		if err != nil {
+			return nil, err
+		}
+		base_tpl = _base_tpl
 	}
 
 	return base_tpl.Execute(ctx)
