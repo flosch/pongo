@@ -700,7 +700,7 @@ func createBaseTplForExtendInclude(args string, tpl *Template, ctx *Context) (*T
 		args = args[len("static "):]
 	}
 
-	// Example: {% extends "base.html" abc=<expr> ghi=<expr> ... %}
+	// Example: {% extends/include "base.html" abc=<expr> ghi=<expr> ... %}
 	_args := strings.Split(args, " ")
 	if len(_args) <= 0 {
 		return nil, errors.New("Please provide at least a filename to extend from.")
@@ -709,7 +709,7 @@ func createBaseTplForExtendInclude(args string, tpl *Template, ctx *Context) (*T
 	if err != nil {
 		return nil, err
 	}
-	name, err := e.evalString(ctx) // TODO: nil? does it work?
+	name, err := e.evalString(ctx)
 	if err != nil {
 		return nil, err
 	}
