@@ -243,6 +243,7 @@ var tags_tests = []test{
 	{"{% if !true || !true || !true || true && true %}Yes{% else %}No{%endif%}", "Yes", nil, ""},
 	{"{% if false || false || true || false %}Yes{% else %}No{%endif%}", "Yes", nil, ""},
 	{"{% if false || true %}Yes{% else %}No{%endif%}", "Yes", nil, ""},
+	{"{% if novalue %}Yes{% else %}No{%endif%}", "No", nil, ""},
 	{"{% if !novalue %}Yes{% else %}No{%endif%}", "Yes", nil, ""},
 	{"{% if person %}Yes{% else %}No{% endif %}", "xxxx", Context{"person": &person}, "Pongo panicked with this error"}, // This one lets pongo panicking in tags.go 
 	{"{% if person %}Yes{% else %}No{% endif %}", "xxxx", Context{"person": &person}, "FUTURE"},                         // Should be fixed in the future

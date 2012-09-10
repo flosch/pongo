@@ -494,7 +494,6 @@ func (e *expr) evalValue(ctx *Context) (interface{}, error) {
 		case bool:
 			return !val, nil
 		default:
-			fmt.Printf("%v (type %T)\n", value, value)
 			// If negation of a string, int or something, check whether they equal
 			// their default value. Default behaviour is: empty type evaluates to false (since
 			// this is a negation it must evaluating to true) 
