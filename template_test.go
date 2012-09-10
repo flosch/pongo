@@ -102,11 +102,11 @@ var standard_tests = []test{
 	// Bool (and negation)
 	{"{{ true }}", "true", nil, ""},
 	{"{{ false }}", "false", nil, ""},
-	{"{{ !5|unsafe }}", "", nil, "Cannot negate '5' of type int"},
-	{"{{ !true }}", "", nil, "maybe you want to add the unsafe-filter"},
-	{"{{ !false }}", "", nil, "maybe you want to add the unsafe-filter"},
-	{"{{ !true|unsafe }}", "false", nil, ""},
-	{"{{ !false|unsafe }}", "true", nil, ""},
+	{"{{ !5 }}", "false", nil, ""},
+	{"{{ !0 }}", "true", nil, ""},
+	{"{{ !0.0 }}", "true", nil, ""},
+	{"{{ !true }}", "false", nil, ""},
+	{"{{ !false }}", "true", nil, ""},
 
 	// Simple variables
 	{"{{ foo }}", "", nil, ""},
@@ -243,20 +243,27 @@ var tags_tests = []test{
 	{"{% if !true || !true || !true || true && true %}Yes{% else %}No{%endif%}", "Yes", nil, ""},
 	{"{% if false || false || true || false %}Yes{% else %}No{%endif%}", "Yes", nil, ""},
 	{"{% if false || true %}Yes{% else %}No{%endif%}", "Yes", nil, ""},
+	{"{% if !novalue %}Yes{% else %}No{%endif%}", "Yes", nil, ""},
+	{"{% if person %}Yes{% else %}No{% endif %}", "xxxx", Context{"person": &person}, "Pongo panicked with this error"}, // This one lets pongo panicking in tags.go 
+	{"{% if person %}Yes{% else %}No{% endif %}", "xxxx", Context{"person": &person}, "FUTURE"},                         // Should be fixed in the future
 
 	// ... strings
-	{"{% if \"\" %}Yes{% else %}No{%endif%}", "No", nil, ""}, // an empty string evaluates to false
+	{"{% if \"\" %}Yes{% else %}No{%endif%}", "No", nil, ""},                                 // an empty string evaluates to false
+	{"{% if emptystring %}Yes{% else %}No{%endif%}", "No", Context{"emptystring": ""}, ""},   // an empty string evaluates to false
+	{"{% if !emptystring %}Yes{% else %}No{%endif%}", "Yes", Context{"emptystring": ""}, ""}, // an empty string evaluates to false
 	{"{% if \"with content\" %}Yes{% else %}No{%endif%}", "Yes", nil, ""},
 
 	// ... ints
 	{"{% if 0 %}Yes{% else %}No{%endif%}", "No", nil, ""}, // 0 evaluates to false
 	{"{% if zero %}Yes{% else %}No{%endif%}", "No", Context{"zero": 0}, ""},
+	{"{# int #}{% if four %}Yes{% else %}No{%endif%}", "Yes", Context{"four": 4}, ""},
 	{"{% if 1 %}Yes{% else %}No{%endif%}", "Yes", nil, ""},
 	{"{% if 919592 %}Yes{% else %}No{%endif%}", "Yes", nil, ""},
 
 	// ... floats
 	{"{% if 0.0 %}Yes{% else %}No{%endif%}", "No", nil, ""}, // 0.0 evaluates to false
 	{"{% if zero %}Yes{% else %}No{%endif%}", "No", Context{"zero": 0}, ""},
+	{"{# float #}{% if four %}Yes{% else %}No{%endif%}", "Yes", Context{"four": 4.0}, ""},
 	{"{% if 1 %}Yes{% else %}No{%endif%}", "Yes", nil, ""},
 	{"{% if 919592 %}Yes{% else %}No{%endif%}", "Yes", nil, ""},
 
@@ -276,6 +283,8 @@ var tags_tests = []test{
 	{"{% if name == \"flo==ri&&an\" %}yes{%else%}no{%endif%}", "yes", Context{"name": "flo==ri&&an"}, ""},
 
 	// For
+	{"{% for six %}{{ forloop.Counter }}{% endfor %}", "012345", Context{"six": 6}, ""},
+	{"{% for seven %}{{ forloop.Counter }}{% endfor %}", "", Context{"six": "7"}, "For-loop error: Cannot iterate over 'seven'"},
 	{"{% for 6 %}{{ forloop.Counter }}{% endfor %}", "012345", nil, ""},
 	{"{% for 6 %}{{ forcounter }}{% endfor %}", "012345", nil, ""},
 	{"{% for 6 %}{{ forloop.Counter1 }}{% endfor %}", "123456", nil, ""},
@@ -363,7 +372,7 @@ var tags_tests = []test{
 	{"{% include tpl_name %} How are you today?", "Hello Flo! How are you today?", Context{"name": "flo", "tpl_name": "greetings"}, ""},
 	{"{% include \"foobar\" %} This and that", "", nil, "Could not find the template"},
 	{"{% include \"greetings_with_errors\" %} This and that", "", nil, "[Parsing error: greetings_with_errors] [Line 1, Column 27] Filter 'notexistent' not found"},
-	
+
 	// Static include (see comments for static extend above)
 	{"{% include static \"greetings\" %} How are you today?", "Hello Flo! How are you today?", Context{"name": "flo"}, ""},
 	{"{% include static tpl_name %} How are you today?", "Hello Flo! How are you today?", Context{"name": "flo", "tpl_name": "greetings"}, "Please provide a propper template filename"},

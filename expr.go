@@ -494,7 +494,14 @@ func (e *expr) evalValue(ctx *Context) (interface{}, error) {
 		case bool:
 			return !val, nil
 		default:
-			return nil, errors.New(fmt.Sprintf("Cannot negate '%v' of type %T (maybe you want to add the unsafe-filter; filter history: %v).", value, value, chainCtx.applied_filters))
+			fmt.Printf("%v (type %T)\n", value, value)
+			// If negation of a string, int or something, check whether they equal
+			// their default value. Default behaviour is: empty type evaluates to false (since
+			// this is a negation it must evaluating to true) 
+			value = reflect.Zero(reflect.TypeOf(value)).Interface() == value
+
+			// TODO: Not needed anymore?
+			//return nil, errors.New(fmt.Sprintf("Cannot negate '%v' of type %T (maybe you want to add the unsafe-filter; filter history: %v).", value, value, chainCtx.applied_filters))
 		}
 	}
 

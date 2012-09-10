@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 )
 
@@ -83,6 +84,9 @@ type Template struct {
 
 	// Static content (doesn't change with execution)
 	cache map[string]interface{}
+
+	// Debugging
+	debug bool
 }
 
 type stateFunc func(*Template) stateFunc
@@ -488,7 +492,7 @@ func (tpl *Template) parse() error {
 	return nil
 }
 
-// Executes the template with the given context and write to http.ResponseWriter
+// Executes the template with the given context and writes to http.ResponseWriter
 // on success. Context can be nil. Nothing is written on error; instead the error
 // is being returned.
 func (tpl *Template) ExecuteRW(w http.ResponseWriter, ctx *Context) error {
@@ -501,8 +505,30 @@ func (tpl *Template) ExecuteRW(w http.ResponseWriter, ctx *Context) error {
 }
 
 // Executes the template with the given context (can be nil).
-func (tpl *Template) Execute(ctx *Context) (*string, error) {
+func (tpl *Template) Execute(ctx *Context) (out *string, err error) {
+	defer func() {
+		rerr := recover()
+		if rerr != nil {
+			// Panic recovered
+			out = nil
+			err = errors.New(fmt.Sprintf("Pongo panicked with this error (please report this issue, see console output! You can see the stack trace when activating debugging: tpl.SetDebug(true)): %s", rerr))
+
+			if tpl.debug {
+				fmt.Println("*************************************************************************")
+				fmt.Println("Due to panicking of pongo, I'm printing the error message and stack here.")
+				fmt.Printf("Panic message: %s\n", rerr)
+				fmt.Println("*************************************************************************")
+				debug.PrintStack()
+				fmt.Println("*************************************************************************")
+			}
+		}
+	}()
 	return tpl.execute(ctx, nil)
+}
+
+// pongo will print out a stacktrace whenever it panics if set to true.
+func (tpl *Template) SetDebug(d bool) {
+	tpl.debug = d
 }
 
 func newExecutionContext(tpl *Template, internalContext *Context) *executionContext {

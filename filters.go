@@ -65,9 +65,13 @@ func filterSafe(value interface{}, args []interface{}, ctx *FilterChainContext) 
 		return value, nil
 	}
 
-	output := fmt.Sprintf("%v", value)
+	str, is_str := value.(string)
+	if !is_str {
+		// We don't have to safe non-strings
+		return value, nil
+	}
 
-	output = strings.Replace(output, "&", "&amp;", -1)
+	output := strings.Replace(str, "&", "&amp;", -1)
 	output = strings.Replace(output, ">", "&gt;", -1)
 	output = strings.Replace(output, "<", "&lt;", -1)
 
