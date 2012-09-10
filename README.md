@@ -40,11 +40,15 @@ Please have a look at the test (`template_test.go`) for examples.
 
 # Documentation
 
-See GoPkgDoc for a list of implemented filters/tags and how to use the simple API:
+See the wiki (work in progress) on GitHub for a documentation/reference:
+
+[https://github.com/flosch/pongo/wiki](https://github.com/flosch/pongo/wiki).
+
+While I'm working on the wiki content, GoPkgDoc shows a list of implemented filters/tags and an auto-generated documentation on how to use the simple API:
 
 [http://go.pkgdoc.org/github.com/flosch/pongo](http://go.pkgdoc.org/github.com/flosch/pongo)
 
-You can simply add your own filters/tags. See the `template_test.go` for an example implementation.
+It is possible to add your own filters/tags. See the `template_test.go` for example implementations.
 
 # Status
 
