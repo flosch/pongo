@@ -125,6 +125,9 @@ func resolveIdent(name exprIdent, ctx *Context) (interface{}, error) {
 				}
 			}
 		}
+		
+		// Check for a pointer in rv and resolve it
+		rv = resolvePointer(rv)
 
 	sw:
 		switch rv.Kind() {
