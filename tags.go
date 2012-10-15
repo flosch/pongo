@@ -21,8 +21,8 @@ var Tags = map[string]*TagHandler{
 	"endfor":    nil,
 	"block":     &TagHandler{Execute: tagBlock}, // Needs no Ignore-function because nested-blocks aren't allowed
 	"endblock":  nil,
-	"extends":   &TagHandler{Execute: tagExtends, Prepare: tagExtendsPrepare},
-	"include":   &TagHandler{Execute: tagInclude, Prepare: tagIncludePrepare},
+	"extends":   &TagHandler{},
+	"include":   &TagHandler{},
 	"trim":      &TagHandler{Execute: tagTrim, Ignore: tagTrimIgnore},
 	"endtrim":   nil,
 	"remove":    &TagHandler{Execute: tagRemove, Ignore: tagRemoveIgnore},
@@ -33,6 +33,14 @@ var Tags = map[string]*TagHandler{
 	/*"while":    tagWhile,
 	"endwhile": nil,
 	"set":      tagSet,*/
+}
+
+func init() {
+	// Workaround, to fix the 'initialization loop' compiler error
+	Tags["extends"].Prepare = tagExtendsPrepare
+	Tags["extends"].Execute = tagExtends
+	Tags["include"].Prepare = tagIncludePrepare
+	Tags["include"].Execute = tagInclude
 }
 
 type compareFunc func(interface{}, interface{}) bool
