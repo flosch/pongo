@@ -37,10 +37,16 @@ var Tags = map[string]*TagHandler{
 
 func init() {
 	// Workaround, to fix the 'initialization loop' compiler error
-	Tags["extends"].Prepare = tagExtendsPrepare
-	Tags["extends"].Execute = tagExtends
-	Tags["include"].Prepare = tagIncludePrepare
-	Tags["include"].Execute = tagInclude
+	// First check whether there is any extends/include entry in Tags
+	// since it could be removed by the user.
+	if _, has_extends := Tags["extends"]; has_extends {
+		Tags["extends"].Prepare = tagExtendsPrepare
+		Tags["extends"].Execute = tagExtends
+	}
+	if _, has_include := Tags["include"]; has_include { 
+		Tags["include"].Prepare = tagIncludePrepare
+		Tags["include"].Execute = tagInclude
+	}
 }
 
 type compareFunc func(interface{}, interface{}) bool
