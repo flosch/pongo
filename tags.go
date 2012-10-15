@@ -39,11 +39,11 @@ func init() {
 	// Workaround, to fix the 'initialization loop' compiler error
 	// First check whether there is any extends/include entry in Tags
 	// since it could be removed by the user.
-	if _, has_extends := Tags["extends"]; has_extends {
+	if tag, has_extends := Tags["extends"]; has_extends && tag.Execute == nil && tag.Prepare == nil {
 		Tags["extends"].Prepare = tagExtendsPrepare
 		Tags["extends"].Execute = tagExtends
 	}
-	if _, has_include := Tags["include"]; has_include { 
+	if tag, has_include := Tags["include"]; has_include && tag.Execute == nil && tag.Prepare == nil {
 		Tags["include"].Prepare = tagIncludePrepare
 		Tags["include"].Execute = tagInclude
 	}
