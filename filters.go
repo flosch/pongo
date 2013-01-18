@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type FilterFunc func(interface{}, []interface{}, *FilterChainContext) (interface{}, error)
@@ -35,16 +36,17 @@ func (ctx *FilterChainContext) visitFilter(name string) {
 }
 
 var Filters = map[string]FilterFunc{
-	"safe":       filterSafe,
-	"unsafe":     nil, // It will not be called, just added to visited filters (applied_filters)
-	"lower":      filterLower,
-	"upper":      filterUpper,
-	"capitalize": filterCapitalize,
-	"default":    filterDefault,
-	"trim":       filterTrim,
-	"length":     filterLength,
-	"join":       filterJoin,
-	"striptags":  filterStriptags,
+	"safe":        filterSafe,
+	"unsafe":      nil, // It will not be called, just added to visited filters (applied_filters)
+	"lower":       filterLower,
+	"upper":       filterUpper,
+	"capitalize":  filterCapitalize,
+	"default":     filterDefault,
+	"trim":        filterTrim,
+	"length":      filterLength,
+	"join":        filterJoin,
+	"striptags":   filterStriptags,
+	"time_format": filterTimeFormat,
 
 	/* TODO:
 	- verbatim
@@ -84,6 +86,25 @@ func filterLower(value interface{}, args []interface{}, ctx *FilterChainContext)
 		return nil, errors.New(fmt.Sprintf("%v (%T) is not of type string", value, value))
 	}
 	return strings.ToLower(str), nil
+}
+
+func filterTimeFormat(value interface{}, args []interface{}, ctx *FilterChainContext) (interface{}, error) {
+	t, is_time := value.(time.Time)
+	if !is_time {
+		return nil, errors.New(fmt.Sprintf("%v (%T) is not of type string", value, value))
+	}
+
+	arg := args[0]
+	if arg == nil {
+		return nil, errors.New("time_format requires you pass a format.")
+	}
+
+	format, is_string := arg.(string)
+	if !is_string {
+		return nil, errors.New(fmt.Sprintf("time_format's format must be a string. %v (%T) passed.", format, format))
+	}
+
+	return t.Format(format), nil
 }
 
 func filterUpper(value interface{}, args []interface{}, ctx *FilterChainContext) (interface{}, error) {
