@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"math"
 )
 
 type Person struct {
@@ -223,6 +224,21 @@ var filter_tests = []test{
 	{"{{ 5|add:7,10 }}", "22", nil, ""},
 	{"{{ 5|add:7,10,25 }}", "47", nil, ""},
 	{"{{ 5|add:10,\"test\" }}", "", nil, "No int: test"},
+
+	// Floatformat filter
+	{"{{ 34.23234|floatformat }}", "34.2", nil, ""},
+	{"{{ 34.00000|floatformat }}", "34", nil, ""},
+	{"{{ 34.26000|floatformat }}", "34.3", nil, ""},
+	{"{{ 34.23234|floatformat:3 }}", "34.232", nil, ""},
+	{"{{ 34.00000|floatformat:3 }}", "34.000", nil, ""},
+	{"{{ 34.26000|floatformat:3 }}", "34.260", nil, ""},
+	{"{{ 34.23234|floatformat:\"0\" }}", "34", nil, ""},
+	{"{{ 34.00000|floatformat:\"0\" }}", "34", nil, ""},
+	{"{{ 39.56000|floatformat:\"0\" }}", "40", nil, ""},
+	{"{{ 34.23234|floatformat:\"-3\" }}", "34.232", nil, ""},
+	{"{{ 34.00000|floatformat:\"-3\" }}", "34", nil, ""},
+	{"{{ 34.26000|floatformat:\"-3\" }}", "34.260", nil, ""},
+	{"{{ value|floatformat }}", "NaN", Context{"value" : math.NaN()}, ""},
 }
 
 var tags_tests = []test{
