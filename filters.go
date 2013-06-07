@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -47,6 +48,7 @@ var Filters = map[string]FilterFunc{
 	"join":        filterJoin,
 	"striptags":   filterStriptags,
 	"time_format": filterTimeFormat,
+	"floatformat": filterFloatFormat,
 
 	/* TODO:
 	- verbatim
@@ -207,4 +209,84 @@ func filterDefault(value interface{}, args []interface{}, ctx *FilterChainContex
 	}
 
 	return value, nil
+}
+
+/*
+	Filter for formatting floats. The filter closely follows Django's implementation.
+
+	Examples:
+
+		When used without an argument, it rounds the float to 1 decimal place, but only if there's a decimal point to be displayed:
+
+		{{ 34.23234|floatformat }} displays 34.2
+		{{ 34.00000|floatformat }} displays 34
+		{{ 34.26000|floatformat }} displays 34.3
+
+		When used with an integer parameter, it rounds the float to that number of decimals. No trimming of zeros occurs.
+
+		{{ 34.23234|floatformat:3 }} displays 34.232
+		{{ 34.00000|floatformat:3 }} displays 34.000
+		{{ 34.26000|floatformat:3 }} displays 34.260
+
+		"0" rounds to the nearest integer.
+
+		{{ 34.23234|floatformat:"0" }} displays 34
+		{{ 34.00000|floatformat:"0" }} displays 34
+		{{ 39.56000|floatformat:"0" }} displays 40
+
+		A negative parameter rounds to that number of decimals, but only if necessary.
+
+		{{ 34.23234|floatformat:"-3" }} displays 34.232
+		{{ 34.00000|floatformat:"-3" }} displays 34
+		{{ 34.26000|floatformat:"-3" }} displays 34.260
+
+*/
+func filterFloatFormat(value interface{}, args []interface{}, ctx *FilterChainContext) (interface{}, error) {
+
+	// Value to format
+	var floatValue float64
+	switch val := value.(type) {
+	case float32:
+		floatValue = float64(val)
+	case float64:
+		floatValue = val
+	default:
+		return nil, errors.New("Illegal type for floatformat (only float32 and float64 are acceptable)")
+	}
+
+	// Default parameters
+	decimals, trim := 1, true
+	if len(args) > 1 {
+		return nil, errors.New("Floatformat filter takes at most one argument")
+	} else if len(args) == 1 {
+		switch val := args[0].(type) {
+		case int:
+			decimals = val
+			trim = false
+		case string:
+			var err error
+			decimals, err = strconv.Atoi(val)
+			if err != nil {
+				return nil, errors.New(fmt.Sprintf("Illegal floatformat argument: %v", val))
+			}
+			if decimals <= 0 {
+				decimals = -decimals
+			} else {
+				trim = false
+			}
+		default:
+			return nil, errors.New(fmt.Sprintf("%v (%T) is not of type int or string", val, val))
+		}
+	}
+
+	fmtFloat := strconv.FormatFloat(floatValue, 'f', decimals, 64)
+
+	// Remove zeroes if they are unnecessary
+	if trim {
+		intVal := int(floatValue)
+		if floatValue-float64(intVal) == 0 {
+			fmtFloat = strconv.Itoa(intVal)
+		}
+	}
+	return fmtFloat, nil
 }
