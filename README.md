@@ -1,4 +1,4 @@
-**Update (June 28th 2014): [pongo2](https://github.com/flosch/pongo2) is the in-development successor of pongo. Please star/watch it as well to keep track of the development. First beta is out.**
+**I deactivated the issue tracker and wiki pages for pongo. pongo won't receive bugfixes anymore. Please consider using the successor [pongo2](https://github.com/flosch/pongo2) instead. You can find [more information and a migration tutorial](http://www.florian-schlachter.de/post/pongo2/) on my website.**
 
 pongo is a well-tested template engine which implements a [Django-template](https://docs.djangoproject.com/en/dev/topics/templates/)-like syntax.
 
