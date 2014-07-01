@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/flosch/pongo.svg?branch=master)](https://travis-ci.org/flosch/pongo)
+[![GoDoc](https://godoc.org/github.com/flosch/pongo?status.png)](https://godoc.org/github.com/flosch/pongo) [![Build Status](https://travis-ci.org/flosch/pongo.svg?branch=master)](https://travis-ci.org/flosch/pongo)
 
 **I deactivated the issue tracker and wiki pages for pongo. pongo won't receive bugfixes anymore. Please consider using the successor [pongo2](https://github.com/flosch/pongo2) instead. You can find [more information and a migration tutorial](http://www.florian-schlachter.de/post/pongo2/) on my website.**
 
