@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/flosch/pongo.svg?branch=master)](https://travis-ci.org/flosch/pongo)
+
 **I deactivated the issue tracker and wiki pages for pongo. pongo won't receive bugfixes anymore. Please consider using the successor [pongo2](https://github.com/flosch/pongo2) instead. You can find [more information and a migration tutorial](http://www.florian-schlachter.de/post/pongo2/) on my website.**
 
 pongo is a well-tested template engine which implements a [Django-template](https://docs.djangoproject.com/en/dev/topics/templates/)-like syntax.
